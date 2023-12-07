@@ -276,7 +276,6 @@ const cellMenuEvent: VxeGridEvents.CellMenu = ({$grid,row})=>{
 }
 
 const gridEvents ={
-    // currentChange: currentChangeEvent,
     toolbarButtonClick: toolbarButtonClickEvent,
     menuClick: menuClickEvent,
     cellMenu: cellMenuEvent
