@@ -48,20 +48,38 @@ const gridOptions = reactive({
     },
     toolbarConfig: {
         buttons:[
-            { code : 'addEvent', name : '新增虚拟件'},
-            { code : 'expandEvent', name : '全部展开' },
-            { code : 'collapseEvent', name : '全部收起' },
-            { code : 'splitEvent', name : '拆分' },
-            { code : 'getDiffEvent', name : '查看差异' },
-            { code : 'newProcessCardEvent', name : '新建工艺过程卡' },
-            { code : 'viewProcessCardEvent', name : '查看工艺过程卡' },
-            { code : 'deleteEvent', name : '删除' },
-            { code : 'saveEvent', name : '保存' },
-            { code : 'cancelEvent', name : '取消' },
+            
+                { code : 'expandEvent', name : '全部展开' },
+                { code : 'collapseEvent', name : '全部收起' },
+                { code : 'getDiffEvent', name : '检查责信度' },
+                { code : 'saveEvent', name : '保存' },
+            
         ],
+        perfect : true,
+        refresh: {
+            icon: 'vxe-icon-refresh',
+            iconLoading: 'vxe-icon-refresh roll'
+        }, 
+        zoom: {
+            iconIn: 'vxe-icon-fullscreen',
+            iconOut: 'vxe-icon-minimize'
+        },
     },
     menuConfig:{
-
+        enabled: true,
+        body: {
+           options:[
+            [
+                //单选操作
+                { code: 'addEvent', name: '插入工艺虚拟件', visible: true, disabled: false },
+                { code: 'splitEvent', name: '拆分零件', visible: true, disabled: false },
+                { code: 'newProcessCardEvent', name: '新建工艺过程卡', visible: true, disabled: false },
+                { code: 'viewProcessCardEvent', name: '查看工艺过程卡', visible: true, disabled: false },
+            
+                { code: 'deleteEvent', name: '删除行', prefixIcon: 'vxe-icon-delete', visible: true, disabled: false },
+            
+           ]
+        ]}
     },
     treeConfig: {
         childrenField: 'children'
@@ -207,11 +225,16 @@ const treeDrop = () => {
     })
 }
 
-const currentChangeEvent: VxeTableEvents.CurrentChange = ({$table,row}) => {
-    // 触发改行单选框
-    $table.setRadioRow(row)
-}
+
 const toolbarButtonClickEvent: VxeGridEvents.ToolbarButtonClick = ({$grid,code}) => {
+    buttonEvent($grid,code);
+}
+
+const menuClickEvent: VxeGridEvents.MenuClick = ({$grid,code})=>{
+    buttonEvent($grid,code);
+}
+
+const buttonEvent = ($grid : any,code: string) =>{
     console.log($grid);
     if(code === 'addEvent'){
         //新增虚拟件
@@ -247,9 +270,16 @@ const toolbarButtonClickEvent: VxeGridEvents.ToolbarButtonClick = ({$grid,code})
     }
 }
 
+ //右键菜单时，选中改行
+const cellMenuEvent: VxeGridEvents.CellMenu = ({$grid,row})=>{
+    $grid.setRadioRow(row);
+}
+
 const gridEvents ={
-    currentChange: currentChangeEvent,
-    toolbarButtonClick: toolbarButtonClickEvent
+    // currentChange: currentChangeEvent,
+    toolbarButtonClick: toolbarButtonClickEvent,
+    menuClick: menuClickEvent,
+    cellMenu: cellMenuEvent
 }
     
 
@@ -274,9 +304,13 @@ onUnmounted(() => {
     cursor: move;
     font-size: 12px;
 }
+.toolbar {
+    margin: 20%;
+}
 
 .sortable-tree-demo .vxe-body--row.sortable-ghost,
 .sortable-tree-demo .vxe-body--row.sortable-chosen {
     background-color: #dfecfb;
 }
+
 </style>
