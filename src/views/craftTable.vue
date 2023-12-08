@@ -136,8 +136,6 @@ const treeDrop = () => {
     sortable = Sortable.create($grid.$el.querySelector('.body--wrapper>.vxe-table--body tbody') as HTMLElement, {
         handle: '.drag-btn',
         onEnd: (sortableEvent: any) => {
-            //获得目标行的列的index
-            const targetIndex = sortableEvent.newIndex as number
             //获取鼠标最后的位置
             const mousePositionX = sortableEvent.originalEvent.clientX
             const mousePosition = sortableEvent.originalEvent.clientY
@@ -159,18 +157,28 @@ const treeDrop = () => {
             const targetTrElem = sortableEvent.item
             //新位置的父dom
             const wrapperElem = targetTrElem.parentNode as HTMLElement
-            //旧位置的dom
-            const prevTrElem = targetTrElem.previousElementSibling as HTMLElement
+            
+
+
+            // //新位置的index,判断是向上移动还是向下移动, 向上移动取上一个dom, 向下移动取下一个dom
+            // const newIndex = sortableEvent.newIndex as number
+            //旧的位置的index
+            const oldIndex = sortableEvent.oldIndex as number
+
+            //向下移动
+            var prevTrElem = targetTrElem.previousElementSibling as HTMLElement
+            // if (newIndex < oldIndex) {
+            //     //向上移动
+            //     prevTrElem = targetTrElem.nextElementSibling as HTMLElement
+            // }
+
+   
 
             //表格数据
             const tableTreeData = gridOptions.data as any[]
 
             //新位置的node
             const targetRowNode = $grid.getRowNode(targetTrElem)
-
-
-            //旧的位置的index
-            const oldIndex = sortableEvent.oldIndex as number
 
             // 新位置的node为空时，
             if (!targetRowNode) {
@@ -203,13 +211,17 @@ const treeDrop = () => {
                 const currRow = selfNode.items.splice(selfNode.index, 1)[0]
 
                 let toChild = false;
-                if ((prevRow[options.children] && prevRow[options.children].length > 0 && $grid.isTreeExpandByRow(prevRow))||(prevRow[options.children] && prevRow[options.children].length === 0 && columnIndex!==0 ) ) {
+                if ((prevRow[options.children] && prevRow[options.children].length > 0 && $grid.isTreeExpandByRow(prevRow)&& columnIndex!==0)||(prevRow[options.children] && prevRow[options.children].length === 0 && columnIndex!==0 ) ) {
                     toChild = true;
                 }
 
 
                 if (toChild) {
                     prevRow[options.children].splice(0, 0, currRow);
+                    //移动后判断父阶是否展开, 未展开则展开
+                    // if (!$grid.isTreeExpandByRow(prevRow)) {
+                    //     $grid.setTreeExpand(prevRow, true);
+                    // }
                 } else {
                     // 移动到相邻节点
                     prevNode.items.splice(prevNode.index + (selfNode.index < prevNode.index ? 0 : 1), 0, currRow)

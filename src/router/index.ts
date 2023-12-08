@@ -8,20 +8,17 @@ const routes: Array<RouteRecordRaw> = [
     component: HomeView
   },
   {
-    path: '/draggableTable',
-    name: 'draggableTable',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/draggableTable.vue')
+    path: '/DraggableTable',
+    name: 'DraggableTable',
+    component: () => import(/* webpackChunkName: "about" */ '../views/DraggableTable.vue')
   },
   {
-    path: '/craftTable',
-    name: 'craftTable',
+    path: '/CraftTable',
+    name: 'CraftTable',
     // route level code-splitting
     // this generates a separate chunk (about.[hash].js) for this route
     // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/craftTable.vue')
+    component: () => import(/* webpackChunkName: "about" */ '../views/CraftTable.vue')
   }
 ]
 

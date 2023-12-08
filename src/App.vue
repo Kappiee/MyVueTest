@@ -1,8 +1,9 @@
 <template>
-  <!-- <nav>
+  <nav>
     <router-link to="/">Home</router-link> |
-    <router-link to="/draggableTable">DraggableTable</router-link>
-  </nav> -->
+    <router-link to="/DraggableTable">DraggableTable</router-link> |
+    <router-link to="/CraftTable">CraftTable</router-link>
+  </nav>
   <router-view/>
 </template>
 
