@@ -6,8 +6,8 @@
             </span>
         </template>
         <template #dragTip>
-            <vxe-tooltip v-model="demo2.showHelpTip" content="按住后可以上下拖动排序！" enterable>
-                <i class="vxe-icon-question-circle-fill" @click="demo2.showHelpTip = !demo2.showHelpTip"></i>
+            <vxe-tooltip v-model="showHelpTip.showDraggableHelpTip" content="按住后可以上下拖动排序！" enterable>
+                <i class="vxe-icon-question-circle-fill" @click="showHelpTip.showDraggableHelpTip = !showHelpTip.showDraggableHelpTip"></i>
             </vxe-tooltip>
         </template>
     </vxe-grid>
@@ -15,18 +15,13 @@
 
 <script lang="ts" setup>
 
-import { reactive, ref, onUnmounted, nextTick } from 'vue'
+import { reactive, ref, onUnmounted, nextTick,onMounted } from 'vue'
 import { VXETable, VxeGridInstance, VxeGridProps,VxeTableEvents,VxeGridEvents } from 'vxe-table'
+import axios from '@/common/ArasHttp'
 import XEUtils from 'xe-utils'
 import Sortable from 'sortablejs'
 
-const demo2 = reactive({
-    showHelpTip: false
-})
-
-const xGrid = ref({} as VxeGridInstance)
-
-
+// 表格配置
 const gridOptions = reactive({
     border: true,
     class: 'sortable-tree-demo',
@@ -129,8 +124,15 @@ const gridOptions = reactive({
     ]
 } as VxeGridProps)
 
-let sortable: any
+// 表格提示
+const showHelpTip = reactive({
+    showDraggableHelpTip: false
+})
 
+const xGrid = ref({} as VxeGridInstance)
+
+// SortableJs拖拽
+let sortable: any
 const treeDrop = () => {
     const $grid = xGrid.value
     sortable = Sortable.create($grid.$el.querySelector('.body--wrapper>.vxe-table--body tbody') as HTMLElement, {
@@ -238,6 +240,7 @@ const treeDrop = () => {
 }
 
 
+//表格事件
 const toolbarButtonClickEvent: VxeGridEvents.ToolbarButtonClick = ({$grid,code}) => {
     buttonEvent($grid,code);
 }
@@ -293,6 +296,28 @@ const gridEvents ={
     cellMenu: cellMenuEvent
 }
     
+
+
+onMounted(() => {
+    //获取该id的所有MBom数据
+    debugger;
+    axios.post('/ProcessMBom/GetData', 
+        {
+            id: '2E00DD06AB40408389A66126457EF747'
+        }
+    ).then((res: any) => {
+        console.log(res);
+        //获取到数据后，加载到表格中
+        gridOptions.data = res.data;
+    }).catch((err: any) => {
+        console.log(err);
+    })
+
+    //如果未获取到且data为空，则同步一遍MBom数据
+
+    //获取到则加载到表格中
+    
+})
 
 let initTime: any
 nextTick(() => {

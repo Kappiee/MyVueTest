@@ -1,0 +1,51 @@
+{
+    "code": 0,
+    "msg": "success",
+    "result": [
+        {
+            "title": "物料名称",
+            "field": "hs_name",
+            "width": null
+        },
+        {
+            "title": "物料编码",
+            "field": "hs_number",
+            "width": null
+        },
+        {
+            "title": "物料类型",
+            "field": "hs_type",
+            "width": null
+        },
+        {
+            "title": "版本",
+            "field": "hs_version",
+            "width": null
+        },
+        {
+            "title": "版次",
+            "field": "hs_gengeration",
+            "width": null
+        },
+        {
+            "title": "单位",
+            "field": "hs_unit",
+            "width": null
+        },
+        {
+            "title": "创建人",
+            "field": "hs_createdby",
+            "width": null
+        },
+        {
+            "title": "创建时间",
+            "field": "hs_createdon",
+            "width": null
+        },
+        {
+            "title": "状态",
+            "field": "hs_state",
+            "width": null
+        }
+    ]
+}
