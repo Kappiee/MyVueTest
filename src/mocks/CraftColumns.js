@@ -1,16 +1,22 @@
-{
+import Mock from 'mockjs'
+
+Mock.mock('/ProcessMBom/GetColumns' + '?language=en', 'post', {
+  'data': {
     "code": 0,
     "msg": "success",
     "result": [
+        { title: '', width: 60, slots: { default: 'dragBtn', header: 'dragTip' } },
+        { title: '', type: 'radio', width: 60, align: 'center' },
         {
             "title": "物料名称",
             "field": "hs_name",
-            "width": null
+            "treeNode": true,
+            "width": "100"
         },
         {
             "title": "物料编码",
             "field": "hs_number",
-            "width": null
+            "width": "100"
         },
         {
             "title": "物料类型",
@@ -26,6 +32,12 @@
             "title": "版次",
             "field": "hs_gengeration",
             "width": null
+        },
+        {
+            "title": "数量",
+            "field": "hs_quantity",
+            "width": null,
+            "editRender": { "name": "input" }
         },
         {
             "title": "单位",
@@ -49,3 +61,5 @@
         }
     ]
 }
+})
+
