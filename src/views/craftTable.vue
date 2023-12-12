@@ -18,7 +18,6 @@
 import { reactive, ref ,computed, watch ,onUnmounted, nextTick, onMounted } from 'vue'
 import { VXETable, VxeGridInstance, VxeGridProps, VxeGridEvents } from 'vxe-table'
 import axios from '@/common/ArasHttp'
-import XEUtils, { toStringJSON } from 'xe-utils'
 import Sortable from 'sortablejs'
 import ArasUtil from '@/common/ArasUtil'
 // import '../mocks/CraftColumns'
@@ -62,7 +61,6 @@ const gridOptions = reactive({
                 { code : 'expandEvent', name : '全部展开' },
                 { code : 'collapseEvent', name : '全部收起' },
                 { code : 'getDiffEvent', name : '检查责信度' },
-                { code : 'saveEvent', name : '保存' },
             
         ],
         perfect : true,
@@ -70,10 +68,10 @@ const gridOptions = reactive({
             icon: 'vxe-icon-refresh',
             iconLoading: 'vxe-icon-refresh roll'
         }, 
-        zoom: {
-            iconIn: 'vxe-icon-fullscreen',
-            iconOut: 'vxe-icon-minimize'
-        },
+        // zoom: {
+        //     iconIn: 'vxe-icon-fullscreen',
+        //     iconOut: 'vxe-icon-minimize'
+        // },
     },
     menuConfig:{
         enabled: true,
