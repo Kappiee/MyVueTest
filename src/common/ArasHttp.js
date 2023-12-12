@@ -1,10 +1,9 @@
 import axios from 'axios'
 import ArasUtil from '@/common/ArasUtil'
 
-let baseUrl = process.env.VUE_APP_SERVICE_URL
-if (process.env.NODE_ENV !== 'development') {
-    baseUrl = window.location.origin + '/WYZX_8D/api'
-}
+
+let baseUrl = ArasUtil.getApiUrl()
+
 axios.defaults.baseURL = baseUrl
 axios.defaults.timeout = 15000000 // 请求超时时间 毫秒 
 
@@ -15,7 +14,8 @@ axios.interceptors.request.use(config => {
     if (process.env.NODE_ENV !== 'development') {
         const inn = top.aras.newIOMInnovator()
         config.headers.uid = inn.getUserID()
-        config.headers.language = inn.getLanguageCode()
+        // config.headers.language = inn.getLanguageCode()
+        config.headers.language = 'zh-CN'
     }else{
         config.headers.language = 'zh-CN'
         config.headers.uid = '30B991F927274FA3829655F50C99472E' 
@@ -31,7 +31,7 @@ axios.interceptors.request.use(config => {
 
     // 为GET请求添加一个时间戳参数，以防止浏览器缓存GET请求的结果。
     if (config.method === 'get') {
-        if (config.params === undefined) {
+        if (config.params === void 0) {
             config.params = {
                 v: (new Date()).valueOf()
             }

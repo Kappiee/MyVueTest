@@ -1,12 +1,12 @@
 import Mock from 'mockjs'
 
-Mock.mock('/ProcessMBom/GetColumns' + '?language=en', 'post', {
+Mock.mock('/ProcessMBom/GetColumns', 'post', {
   'data': {
     "code": 0,
     "msg": "success",
     "result": [
-        { title: '', width: 60, slots: { default: 'dragBtn', header: 'dragTip' } },
-        { title: '', type: 'radio', width: 60, align: 'center' },
+        { "title": '', "width": 60, "slots": { "default": 'dragBtn', "header": 'dragTip' } },
+        { "title": '', "type": 'radio', "width": 60, "align": 'center' },
         {
             "title": "物料名称",
             "field": "hs_name",

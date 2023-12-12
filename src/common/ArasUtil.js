@@ -1,43 +1,52 @@
-import { getInnovatorServer } from './ArasUtil'
+import ArasConfig from '@/common/ArasConfig.js'
+
 export default{
     //判断当前环境
-    isDevelopment(){
+    isDevelopment() {
         return process.env.NODE_ENV === 'development'
     },
-    isProduction(){
+    isProduction() {
         return process.env.NODE_ENV === 'production'
     },
 
-    //获取innovatorserver
-    getInnovatorServer(){
-        return "InnovatorServer"
-    },
-
-    //获取测试环境路径
-    getDevelopmentUrl(){
-        return 'http://192.168.110.43'
+    getApiUrl() {
+        return this.isDevelopment() ? ArasConfig.data().localApiUrl : ArasConfig.data().productionApiUrl
     },
 
     //获取当前Item
-    getCurrentItem(){
+    getCurrentItem() {
         if (top.document.querySelector('#main-tab .aras-tabs__tab_active')) {
             const formId = top.document.querySelector('#main-tab .aras-tabs__tab_active').getAttribute('data-id')
             const item = top.document.getElementById(formId).contentWindow.document.getElementById('instance').contentWindow.document.thisItem
             return item
-        }else{
+        } else {
             return null
         }
     },
 
+    //获取表单数据
+    getFormData(){
+        if (!this.isDevelopment) 
+        {   
+            ArasConfig.data().formData.formId = parent.thisItem.getProperty('id');
+        }
+        return ArasConfig.data().formData
+    },
+
+    //获取innovator
+    getInnovator(){
+        return top.aras.newIOMInovator();
+    },
+
+
     // 获取ArasToken
-    getToken(){
-        debugger;
+    getToken() {
         if (this.isDevelopment()) {
-            return ''
-        }else{
-            const key = `oidc.user:${window.location.origin}/${getInnovatorServer()}/OAuthServer/:InnovatorClient`
+            return ArasConfig.data().token
+        } else {
+            const key = `oidc.user:${window.location.origin}/${ArasConfig.data().innovatorServer}/OAuthServer/:InnovatorClient`
             const sessionKeys = Object.keys(sessionStorage)
-            for(const sessionKey of sessionKeys){
+            for (const sessionKey of sessionKeys) {
                 if (sessionKey.toLowerCase() === key.toLowerCase()) {
                     const json = JSON.parse(sessionStorage.getItem(sessionKey))
                     return json.access_token

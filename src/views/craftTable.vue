@@ -15,16 +15,113 @@
 
 <script lang="ts" setup>
 
-import { reactive, ref, onUnmounted, nextTick,onMounted } from 'vue'
-import { VXETable, VxeGridInstance, VxeGridProps,VxeGridEvents } from 'vxe-table'
+import { reactive, ref ,computed, watch ,onUnmounted, nextTick, onMounted } from 'vue'
+import { VXETable, VxeGridInstance, VxeGridProps, VxeGridEvents } from 'vxe-table'
 import axios from '@/common/ArasHttp'
-import XEUtils from 'xe-utils'
+import XEUtils, { toStringJSON } from 'xe-utils'
 import Sortable from 'sortablejs'
-import '../mocks/CraftColumns'
-import '../mocks/InitCraftTableData';
+import ArasUtil from '@/common/ArasUtil'
+// import '../mocks/CraftColumns'
+// import '../mocks/InitCraftTableData';
+
+// 表格配置
+const gridOtherOptions = {
+    formData:{
+        formId:''
+    },
+    treeConfig: {
+        treeNode: 'hs_name',
+    },
+    editConfig: {
+        canEditName:["hs_quantity"]
+    },
+}
+const gridOptions = reactive({
+    border: true,
+    class: 'sortable-tree-demo',
+    id:'id',
+    showOverflow: true,
+    rowConfig: {
+        useKey: true,
+        isHover: true,
+        isCurrent: true,
+    },
+    columnConfig: {
+        resizable: true
+    },
+    scrollY: {
+        enabled: false
+    },
+    editConfig: {
+        trigger: 'dblclick',
+        mode: 'cell',
+    },
+    toolbarConfig: {
+        buttons:[
+            
+                { code : 'expandEvent', name : '全部展开' },
+                { code : 'collapseEvent', name : '全部收起' },
+                { code : 'getDiffEvent', name : '检查责信度' },
+                { code : 'saveEvent', name : '保存' },
+            
+        ],
+        perfect : true,
+        refresh: {
+            icon: 'vxe-icon-refresh',
+            iconLoading: 'vxe-icon-refresh roll'
+        }, 
+        zoom: {
+            iconIn: 'vxe-icon-fullscreen',
+            iconOut: 'vxe-icon-minimize'
+        },
+    },
+    menuConfig:{
+        enabled: true,
+        body: {
+           options:[
+            [
+                //单选操作
+                { code: 'addEvent', name: '插入工艺虚拟件', visible: true, disabled: false },
+                { code: 'splitEvent', name: '拆分零件', visible: true, disabled: false },
+                { code: 'newProcessCardEvent', name: '新建工艺过程卡', visible: true, disabled: false },
+                { code: 'viewProcessCardEvent', name: '查看工艺过程卡', visible: true, disabled: false },
+            
+                { code: 'deleteEvent', name: '删除行', prefixIcon: 'vxe-icon-delete', visible: true, disabled: false },
+            
+           ]
+        ]}
+    },
+    treeConfig: {
+        childrenField: 'children',
+        rowField: 'hs_name',
+    },
+    radioConfig: {
+        trigger: 'row',
+        highlight: true
+    },
+    columns: [],
+    data: [],
+} as VxeGridProps)
 
 
-//表格变化时,生成relationship
+
+
+//表格变化时,生成json放入全局变量中
+declare global{
+    interface Window {
+        globalMBomRow: any;
+        thisItem: any;
+    }
+}
+
+
+watch(() => gridOptions.data,() => {
+    console.log("gridOptions.data",gridOptions.data);
+  if (parent?.thisItem) {
+    parent.thisItem.setProperty("hs_mbom",JSON.stringify(gridOptions.data))
+  }
+}, { deep: true });
+
 
 
 
@@ -195,16 +292,35 @@ const cellMenuEvent: VxeGridEvents.CellMenu = ({$grid,row})=>{
 }
 
 
-
 //获取数据
 const getColums = () => {
-    axios.post('/ProcessMBom/GetColumns'+ '?language=' + 'en'
+    axios.post('/ProcessMBom/GetColumns'
     ).then((res: any) => {
-        console.log(res.data.data.result);
-        debugger;
-
+        console.log("GetColumns",res);
+        if (!res.data?.result) {
+            return;
+        }
+        //添加单选按钮
+        res.data.result.unshift({ title: '', type: 'radio', width: 60, align: 'center' })
+        //添加序号列
+        res.data.result.unshift({ title: '序号', type: 'seq', width: 60, align: 'center' })
+        //添加拖动按钮
+        res.data.result.unshift({ title: '', width: 60, align: 'center', slots: { default: 'dragBtn', header: 'dragTip' } })
+        //添加树形结构
+        res.data.result.find((item: any) => item.field === gridOtherOptions.treeConfig?.treeNode).treeNode = true;
+        //添加可编辑列
+        res.data.result.forEach((item: any) => {
+            for(let cell in gridOtherOptions.editConfig.canEditName){
+                if(item.field === gridOtherOptions.editConfig.canEditName[cell]){
+                    item.editRender = {
+                        name: 'input'
+                    }
+                }
+            }
+        })
+        
         //获取到数据后，加载到表格中
-        gridOptions.columns = res.data.data.result;
+        gridOptions.columns = res.data.result;
     }).catch((err: any) => {
         console.log(err);
     })
@@ -213,12 +329,15 @@ const getColums = () => {
 const getInitData = () => {
     axios.post('/ProcessMBom/GetInitData', 
         {
-            id: '2E00DD06AB40408389A66126457EF747'
+            id: gridOtherOptions.formData.formId
         }
     ).then((res: any) => {
-        console.log(res.data.data.result);
+        console.log("GetInitData",res);
+        if (!res.data?.result) {
+            return;
+        }
         //获取到数据后，加载到表格中
-        gridOptions.data = res.data.data.result;
+        gridOptions.data = res.data.result;
     }).catch((err: any) => {
         console.log(err);
     })
@@ -227,12 +346,15 @@ const getInitData = () => {
 const getData = () => {
     axios.post('/ProcessMBom/GetData', 
         {
-            id: '2E00DD06AB40408389A66126457EF747'
+            id: gridOtherOptions.formData.formId
         }
     ).then((res: any) => {
-        console.log(res.data.data.result);
+        console.log("GetData",res);
+        if (!res.data?.result) {
+            return;
+        }
         //获取到数据后，加载到表格中
-        gridOptions.data = res.data.data.result;
+        gridOptions.data = res.data.result;
     }).catch((err: any) => {
         console.log(err);
     })
@@ -241,80 +363,23 @@ const getData = () => {
 
 
 
-// 表格配置
-const gridOptions = reactive({
-    border: true,
-    class: 'sortable-tree-demo',
-    id:'id',
-    showOverflow: true,
-    rowConfig: {
-        useKey: true,
-        isHover: true,
-        isCurrent: true,
-    },
-    columnConfig: {
-        resizable: true
-    },
-    scrollY: {
-        enabled: false
-    },
-    editConfig: {
-        trigger: 'dblclick',
-        mode: 'cell',
-    },
-    toolbarConfig: {
-        buttons:[
-            
-                { code : 'expandEvent', name : '全部展开' },
-                { code : 'collapseEvent', name : '全部收起' },
-                { code : 'getDiffEvent', name : '检查责信度' },
-                { code : 'saveEvent', name : '保存' },
-            
-        ],
-        perfect : true,
-        refresh: {
-            icon: 'vxe-icon-refresh',
-            iconLoading: 'vxe-icon-refresh roll'
-        }, 
-        zoom: {
-            iconIn: 'vxe-icon-fullscreen',
-            iconOut: 'vxe-icon-minimize'
-        },
-    },
-    menuConfig:{
-        enabled: true,
-        body: {
-           options:[
-            [
-                //单选操作
-                { code: 'addEvent', name: '插入工艺虚拟件', visible: true, disabled: false },
-                { code: 'splitEvent', name: '拆分零件', visible: true, disabled: false },
-                { code: 'newProcessCardEvent', name: '新建工艺过程卡', visible: true, disabled: false },
-                { code: 'viewProcessCardEvent', name: '查看工艺过程卡', visible: true, disabled: false },
-            
-                { code: 'deleteEvent', name: '删除行', prefixIcon: 'vxe-icon-delete', visible: true, disabled: false },
-            
-           ]
-        ]}
-    },
-    treeConfig: {
-        childrenField: 'children'
-    },
-    radioConfig: {
-        trigger: 'row',
-        highlight: true
-    },
-    columns: [
-        { title: '', width: 60, slots: { default: 'dragBtn', header: 'dragTip' } },
-        { title: '', type: 'radio', width: 60, align: 'center' },
-        { title: 'Name', field: 'name', treeNode: true },
-        { title: 'Size', field: 'size' },
-        { title: 'Count', field: 'count',editRender: { name: 'input' } },
-        { title: 'Type', field: 'type' },
-        { title: 'Date', field: 'date' }
-    ],
-    data: [],
-} as VxeGridProps)
+//方法
+//将树形结构的数据转换成一维数组对象, 并赋予层级level
+const treeToArr = (treeData: any,level = 0) => {
+    let arr: any[] = [];
+    treeData.forEach((item: any) => {
+        item.level =level
+        arr.push(item);
+        if (item.children && item.children.length > 0) {
+            arr = arr.concat(treeToArr(item.children,++level));
+        }
+    })
+    return arr;
+}
+
+
+
+
 const gridEvents = {
     toolbarButtonClick: toolbarButtonClickEvent,
     menuClick: menuClickEvent,
@@ -323,10 +388,12 @@ const gridEvents = {
 
 //生命周期
 onMounted(() => {
+    //获取表单数据
+    gridOtherOptions.formData = ArasUtil.getFormData()
     //获取表格列    
     getColums()
     //获取该id的所有MBom数据
-    getData()
+    // getData()
     //如果未获取到且data为空，则同步一遍MBom数据
     if (gridOptions.data && gridOptions.data.length === 0) 
     {
