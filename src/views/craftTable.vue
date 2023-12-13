@@ -21,6 +21,7 @@ import XEUtils from 'xe-utils'
 import axios from '@/common/ArasHttp'
 import Sortable from 'sortablejs'
 import ArasUtil from '@/common/ArasUtil'
+import {calHeight,height} from '@/mixin/tableHeightMixin'
 // import '../mocks/CraftColumns'
 // import '../mocks/InitCraftTableData';
 
@@ -39,6 +40,7 @@ const gridOtherOptions = {
 const gridOptions = reactive({
     border: true,
     class: 'sortable-tree-demo',
+    height: height,
     id:'id',
     showOverflow: true,
     rowConfig: {
@@ -58,11 +60,9 @@ const gridOptions = reactive({
     },
     toolbarConfig: {
         buttons:[
-            
-                { code : 'expandEvent', name : '全部展开' },
-                { code : 'collapseEvent', name : '全部收起' },
-                { code : 'getDiffEvent', name : '检查责信度' },
-            
+            { code : 'expandEvent', name : '全部展开' },
+            { code : 'collapseEvent', name : '全部收起' },
+            { code : 'getDiffEvent', name : '检查责信度' },
         ],
         perfect : true,
         refresh: {
@@ -85,7 +85,6 @@ const gridOptions = reactive({
                 { code: 'viewProcessCardEvent', name: '查看工艺过程卡', visible: true, disabled: false },
             
                 { code: 'deleteEvent', name: '删除行', prefixIcon: 'vxe-icon-delete', visible: true, disabled: false },
-            
            ]
         ]}
     },
@@ -410,6 +409,7 @@ const gridEvents = {
 
 //生命周期
 onMounted(() => {
+    calHeight()
     //获取表单数据
     gridOtherOptions.formData = ArasUtil.getFormData()
     //获取表格列    

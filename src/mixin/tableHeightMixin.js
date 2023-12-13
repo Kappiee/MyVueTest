@@ -1,11 +1,9 @@
-export default {
- data() {
-    return {
-        height: 0,
-    }
- },
- methods: {
-    calHeight(h = 0) {
+import { ref } from "vue";
+
+export function tableHeightMixin() {
+    const height = ref(0)
+
+    function calHeight(h = 0) {
         this.$nextTick(() => {
             const height = document.body.clientHeight
             let formHeight = 0
@@ -22,5 +20,8 @@ export default {
             }
         })
     }
- },
+    return {
+        height,
+        calHeight
+    }
 }
