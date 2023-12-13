@@ -15,8 +15,9 @@
 
 <script lang="ts" setup>
 
-import { reactive, ref ,computed, watch ,onUnmounted, nextTick, onMounted } from 'vue'
+import { reactive, ref , watch ,onUnmounted, nextTick, onMounted } from 'vue'
 import { VXETable, VxeGridInstance, VxeGridProps, VxeGridEvents } from 'vxe-table'
+import XEUtils from 'xe-utils'
 import axios from '@/common/ArasHttp'
 import Sortable from 'sortablejs'
 import ArasUtil from '@/common/ArasUtil'
@@ -52,7 +53,7 @@ const gridOptions = reactive({
         enabled: false
     },
     editConfig: {
-        trigger: 'dblclick',
+        trigger: 'click',
         mode: 'cell',
     },
     toolbarConfig: {
@@ -66,12 +67,11 @@ const gridOptions = reactive({
         perfect : true,
         refresh: {
             icon: 'vxe-icon-refresh',
-            iconLoading: 'vxe-icon-refresh roll'
-        }, 
-        // zoom: {
-        //     iconIn: 'vxe-icon-fullscreen',
-        //     iconOut: 'vxe-icon-minimize'
-        // },
+            iconLoading: 'vxe-icon-refresh roll',
+            queryMethod: () => {
+                getData()
+            }
+        },
     },
     menuConfig:{
         enabled: true,
@@ -114,7 +114,6 @@ declare global{
 
 
 watch(() => gridOptions.data,() => {
-    console.log("gridOptions.data",gridOptions.data);
   if (parent?.thisItem) {
     parent.thisItem.setProperty("hs_mbom",JSON.stringify(gridOptions.data))
   }
@@ -244,25 +243,45 @@ const toolbarButtonClickEvent: VxeGridEvents.ToolbarButtonClick = ({$grid,code})
     buttonEvent($grid,code);
 }
 
-const menuClickEvent: VxeGridEvents.MenuClick = ({$grid,code})=>{
-    buttonEvent($grid,code);
+const menuClickEvent: VxeGridEvents.MenuClick = ({$grid,menu})=>{
+    buttonEvent($grid,menu.code);
+    
 }
 
-const buttonEvent = ($grid : any,code: string) =>{
-    console.log($grid);
+const buttonEvent = ($grid : any,code: any) =>{
+    console.log(code);
     if(code === 'addEvent'){
         //新增虚拟件
         console.log('插入工艺虚拟件')
         $grid.insert({ id:"123123" ,name: 'xxx'})
     }else if(code === 'splitEvent'){
-        console.log('拆分零件')
+        //获取当前选中的行
+        const selectedRow = $grid.getRadioRecord()
+        if (!selectedRow) {
+            return VXETable.modal.message({ content: '请选择要拆分的零件！', status: 'error' })
+        }
+        //判断当前行的数量是否大于1
+        if (selectedRow.hs_quantity <= 1) {
+            return VXETable.modal.message({ content: '当前零件数量小于等于1,不允许拆分!', status: 'error' })
+        }
+        //创建一个新行，数量为1
+        //深拷贝selectedRow对象
+        const record = {...selectedRow}
+        record._X_ROW_KEY = null;
+        console.log(selectedRow);
+        console.log(record);
+        // const { row: newRow } =  $grid.insertNextAt(record, selectedRow)
+        //  $grid.setEditRow(newRow)
+
 
     }else if(code === 'getDiffEvent'){
         console.log('检查责信度')
 
     }else if(code === 'deleteEvent'){
-        console.log('删除零件')
-
+        if ($grid) {
+            const row = $grid.getRadioRecord()
+            $grid.remove(row)
+        }
     }else if(code === 'saveEvent'){
         console.log('保存')
 
@@ -270,11 +289,13 @@ const buttonEvent = ($grid : any,code: string) =>{
         console.log('取消')
 
     }else if(code === 'expandEvent'){
-        console.log('全部展开')
-        
+        if ($grid) {
+            $grid.setAllTreeExpand(true)
+        }
     }else if(code === 'collapseEvent'){
-        console.log('全部收起')
-        
+        if ($grid) {
+            $grid.clearTreeExpand(true)
+        }
     }else if(code === 'newProcessCardEvent'){
         console.log('新建工艺过程卡')
         
@@ -294,7 +315,6 @@ const cellMenuEvent: VxeGridEvents.CellMenu = ({$grid,row})=>{
 const getColums = () => {
     axios.post('/ProcessMBom/GetColumns'
     ).then((res: any) => {
-        console.log("GetColumns",res);
         if (!res.data?.result) {
             return;
         }
@@ -351,14 +371,18 @@ const getData = () => {
         if (!res.data?.result) {
             return;
         }
-        //获取到数据后，加载到表格中
-        gridOptions.data = res.data.result;
+        if (res.data.code === 0) {
+            gridOptions.data = res.data.result;
+            if (res.data.result.length === 0) {
+                console.log("未获取到MBom数据");
+                getInitData()
+            }
+        }
+        
     }).catch((err: any) => {
         console.log(err);
     })
 }
-
-
 
 
 //方法
@@ -391,15 +415,7 @@ onMounted(() => {
     //获取表格列    
     getColums()
     //获取该id的所有MBom数据
-    // getData()
-    //如果未获取到且data为空，则同步一遍MBom数据
-    if (gridOptions.data && gridOptions.data.length === 0) 
-    {
-        getInitData()
-    }
-    // console.log(gridOptions.data);
-    
-    //获取到则加载到表格中
+    getData()
     
 })
 
