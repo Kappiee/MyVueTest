@@ -34,26 +34,28 @@ import axios from '@/common/ArasHttp'
 import Sortable from 'sortablejs'
 import ArasUtil from '@/common/ArasUtil'
 import ArasMethod from '@/common/ArasMethod'
-// import {tableHeightMixin} from '@/mixin/tableHeightMixin'
-
-// import '../mocks/CraftColumns'
-// import '../mocks/InitCraftTableData';
 
 
-// #region 主表格配置与方法
+
+// #region 主表格配置
 
 // 表格配置
 const gridOtherOptions = {
     formData: {
-        formId: ''
+        formId: '',
+        partId: ''
     },
     treeConfig: {
         treeNode: 'hs_name',
     },
     editConfig: {
-        canEditName: ["hs_quantity", "hs_name"]
+        canEditName: ["hs_quantity"]
     },
     tableInitData:[] as VxeTableDataRow[] ,
+    typeList:[] as {
+        value: string,
+        label: string
+    }[]
 }
 const gridOptions = reactive({
     loading: true,
@@ -97,7 +99,6 @@ const gridOptions = reactive({
             //     if (isProcessVirtualPart === false) {
             //         event.cellValue = event.row.hs_name;
             //     }
-            //     console.log("rule", event);
             //     // if (selectedRow?.hs_type != '工艺虚拟件') {
             //     //     return
             //     // }
@@ -109,12 +110,17 @@ const gridOptions = reactive({
             { code: 'expandEvent', name: '全部展开' },
             { code: 'collapseEvent', name: '全部收起' },
             { code: 'getDiffEvent', name: '检查责信度' },
+            { code: 'upEvent', name: '上移一层' },
+            { code: 'downEvent', name: '下移一层' },
+            { code: 'leftEvent', name: '左移一层' },
+            { code: 'rightEvent', name: '右移一层' },
         ],
         perfect: true,
         refresh: {
             icon: 'vxe-icon-refresh',
             iconLoading: 'vxe-icon-refresh roll',
             queryMethod: () => {
+                gridOptions.loading = true;
                 //获取表单数据
                 gridOtherOptions.formData = ArasUtil.getFormData()
                 //获取表格列    
@@ -168,294 +174,8 @@ const setHeight = () => {
     }
 }
 
-
-// 表格拖拽
-const xGrid = ref({} as VxeGridInstance)
-
-const showHelpTip = reactive({
-    showDraggableHelpTip: false
-})
-// SortableJs拖拽
-let sortable: any
-const treeDrop = () => {
-    const $grid = xGrid.value
-    sortable = Sortable.create($grid.$el.querySelector('.body--wrapper>.vxe-table--body tbody') as HTMLElement, {
-        handle: '.drag-btn',
-        onEnd: (sortableEvent: any) => {
-            //获取鼠标最后的位置
-            const mousePositionX = sortableEvent.originalEvent.clientX
-            const mousePosition = sortableEvent.originalEvent.clientY
-
-            // 获取鼠标所在的元素
-            const elementUnderMouse = document.elementFromPoint(mousePositionX, mousePosition)
-
-            // 获取元素在表格中的列索引
-            let columnIndex = -1
-            if (elementUnderMouse) {
-                const cellElement = elementUnderMouse.closest('td')
-                if (cellElement) {
-                    columnIndex = cellElement.cellIndex
-                }
-            }
-
-            const options = { children: 'children' }
-            //新位置dom
-            const targetTrElem = sortableEvent.item
-            //新位置的父dom
-            const wrapperElem = targetTrElem.parentNode as HTMLElement
-
-
-
-            // //新位置的index,判断是向上移动还是向下移动, 向上移动取上一个dom, 向下移动取下一个dom
-            // const newIndex = sortableEvent.newIndex as number
-            //旧的位置的index
-            const oldIndex = sortableEvent.oldIndex as number
-
-            //向下移动
-            var prevTrElem = targetTrElem.previousElementSibling as HTMLElement
-            // if (newIndex < oldIndex) {
-            //     //向上移动
-            //     prevTrElem = targetTrElem.nextElementSibling as HTMLElement
-            // }
-
-
-
-            //表格数据
-            const tableTreeData = gridOptions.data as any[]
-
-            //新位置的node
-            const targetRowNode = $grid.getRowNode(targetTrElem)
-
-            // 新位置的node为空时，
-            if (!targetRowNode) {
-                return
-            }
-
-            // 新位置的行信息
-            const selfRow = targetRowNode.item
-
-            // 新位置的node（全）
-            const selfNode = XEUtils.findTree(tableTreeData, row => row === selfRow, options)
-
-            if (prevTrElem) {
-                // 移动到节点
-                const prevRowNode = $grid.getRowNode(prevTrElem)
-                if (!prevRowNode) {
-                    return
-                }
-                // 旧位置的行信息
-                const prevRow = prevRowNode.item
-                // 旧位置的node（全）
-                const prevNode = XEUtils.findTree(tableTreeData, row => row === prevRow, options)
-
-                if (XEUtils.findTree(selfRow[options.children], row => prevRow === row, options)) {
-                    // 错误的移动
-                    const oldTrElem = wrapperElem.children[oldIndex]
-                    wrapperElem.insertBefore(targetTrElem, oldTrElem)
-                    return VXETable.modal.message({ content: '不允许自己给自己拖动！', status: 'error' })
-                }
-                const currRow = selfNode.items.splice(selfNode.index, 1)[0]
-
-                let toChild = false;
-                if ((prevRow[options.children] && prevRow[options.children].length > 0 && $grid.isTreeExpandByRow(prevRow) && columnIndex !== 0) || (prevRow[options.children] && prevRow[options.children].length === 0 && columnIndex !== 0)) {
-                    toChild = true;
-                }
-
-
-                if (toChild) {
-                    prevRow[options.children].splice(0, 0, currRow);
-                    //移动后判断父阶是否展开, 未展开则展开
-                    // if (!$grid.isTreeExpandByRow(prevRow)) {
-                    //     $grid.setTreeExpand(prevRow, true);
-                    // }
-                } else {
-                    // 移动到相邻节点
-                    prevNode.items.splice(prevNode.index + (selfNode.index < prevNode.index ? 0 : 1), 0, currRow)
-                }
-            } else {
-                // 移动到第一行
-                const currRow = selfNode.items.splice(selfNode.index, 1)[0]
-                tableTreeData.unshift(currRow)
-            }
-            // 如果变动了树层级，需要刷新数据
-            gridOptions.data = [...tableTreeData]
-        }
-    })
-}
-
-
-
-//表格事件
-const toolbarButtonClickEvent: VxeGridEvents.ToolbarButtonClick = ({ $grid, code }) => {
-    buttonEvent($grid, code);
-}
-
-const menuClickEvent: VxeGridEvents.MenuClick = ({ $grid, menu }) => {
-    let code = menu.code;
-    buttonEvent($grid, code === void 0?"":code);
-
-}
-
-const buttonEvent = ($grid: any, code: string) => {
-    console.log(code);
-    if (code === 'addEvent') {
-        //新增虚拟件
-        //获取当前选中的行
-        const selectedRow = $grid.getRadioRecord()
-        //创建一个新行，数量为1
-        const newRecordRow = {
-                hs_name: "虚拟件名称",
-                hs_number: "编号自动生成",
-                hs_quantity: 1,
-                hs_type: "工艺虚拟件",
-                id: getGuID(),
-                parentId: selectedRow?.parentId,
-                sortOrder: selectedRow?.sortOrder,
-            }
-        //操作data表格，将新行插入到当前行的下方
-        $grid.insertNextAt(newRecordRow, selectedRow)
-
-
-    } else if (code === 'splitEvent') {
-        //获取当前选中的行
-        const selectedRow = $grid.getRadioRecord()
-        if (!selectedRow) {
-            return VXETable.modal.message({ content: '请选择要拆分的零件！', status: 'error' })
-        }
-        //判断当前行的数量是否大于1
-        if (selectedRow.hs_quantity <= 1) {
-            return VXETable.modal.message({ content: '当前零件数量小于等于1,不允许拆分!', status: 'error' })
-        }
-        //创建一个新行，数量为1
-        const copyRow: any = (selectedRow: any) => {
-            return {
-                hs_createdby: selectedRow?.hs_createdby,
-                hs_createdon: selectedRow?.hs_createdon,
-                hs_generation: selectedRow?.hs_generation,
-                hs_name: selectedRow?.hs_name,
-                hs_number: selectedRow?.hs_number,
-                hs_process_card: selectedRow?.hs_process_card,
-                hs_quantity: 1,
-                hs_state: selectedRow?.hs_state,
-                hs_type: selectedRow?.hs_type,
-                hs_unit: selectedRow?.hs_unit,
-                hs_version: selectedRow?.hs_version,
-                id: selectedRow?.id,
-                parentId: selectedRow?.parentId,
-                partId: selectedRow?.partId,
-                sortOrder: selectedRow?.sortOrder,
-            }
-
-        }
-        const newRecordRow = copyRow(selectedRow)
-        selectedRow.hs_quantity = selectedRow.hs_quantity - 1;
-        //操作data表格，将新行插入到当前行的下方
-        $grid.insertNextAt(newRecordRow, selectedRow)
-
-
-
-    } else if (code === 'getDiffEvent') {
-        getDiffEvent()
-    } else if (code === 'deleteEvent') {
-        if ($grid) {
-            $grid.removeRadioRow()
-        }
-    } else if (code === 'expandEvent') {
-        if ($grid) {
-            $grid.setAllTreeExpand(true)
-        }
-    } else if (code === 'collapseEvent') {
-        if ($grid) {
-            $grid.clearTreeExpand(true)
-        }
-    } else if (code === 'newProcessCardEvent') {
-        const rwo = $grid.getRadioRecord()
-        var param = {
-            aras:top?.aras,
-            itemtypeName: "hs_process_card",
-            multiselect: false,
-            callback:function (dlgRes:any) {
-                if (dlgRes !== void 0) {
-                    debugger;
-                    let itemId = dlgRes.itemID;
-                    if (itemId) {
-                        if (!rwo) {
-                            return VXETable.modal.message({ content: '请选择要插入的零件！', status: 'error' })
-                        }
-                        rwo.hs_process_card = itemId
-                        console.log("wanc")
-                    }
-                    console.log(itemId)
-                }
-            }
-        };
-        var wndWidth = screen.width * 0.7;
-        var wndHeight = screen.height * 0.7;
-        var options = {
-          dialogHeight: wndHeight,
-          dialogWidth: wndWidth,
-          resizable: true,
-        };
-        var wnd = top?.aras.getMainWindow();
-        wnd = wnd === top ? wnd.main : top;
-        top?.aras.modalDialogHelper.show("SearchDialog", wnd, param, options);
-       
-
-    } else if (code === 'viewProcessCardEvent') {
-        const rwo = $grid.getRadioRecord()
-        if (!rwo) {
-            return VXETable.modal.message({ content: '请选择要查看的零件！', status: 'error' })
-        }
-        const id = rwo.hs_process_card
-        ArasMethod.showItem('hs_process_card',id)
-    }
-}
-
-
-// const fullValidEvent = async () => {
-//   const $table = xGrid.value
-//   if ($table) {
-//     const errMap = await $table.validate(true)
-//     if (errMap) {
-//       const msgList: string[] = []
-//       Object.values(errMap).forEach((errList: any) => {
-//         errList.forEach((params: any) => {
-//           const { rowIndex, column, rules } = params
-//           rules.forEach((rule: any) => {
-//             msgList.push(`第 ${rowIndex + 1} 行 ${column.title} 校验错误：${rule.message}`)
-//           })
-//         })
-//       })
-//       VXETable.modal.message({
-//         status: 'error',
-//         slots: {
-//           default () {
-//             return (
-//               <div class="red" style="max-height: 400px;overflow: auto;">
-//                 {
-//                   msgList.map(msg => <div>{ msg }</div>)
-//                 }
-//               </div>
-//             )
-//           }
-//         }
-//       })
-//     }
-// }
-
-
-//右键菜单时，选中改行
-const cellMenuEvent: VxeGridEvents.CellMenu = ({ $grid, row }) => {
-    $grid.setRadioRow(row);
-}
-const gridEvents = {
-    toolbarButtonClick: toolbarButtonClickEvent,
-    menuClick: menuClickEvent,
-    cellMenu: cellMenuEvent
-}
-
-
 // #endregion
+
 
 
 // #region 检查责信度配置与方法
@@ -516,7 +236,7 @@ let currentPartAndNumber :DiffDataModel[]=[];
 const GetOriPartAndNumber = () => {
     axios.post('/ProcessMBom/GetOriPartAndNumber',
         {
-            id: gridOtherOptions.formData.formId
+            id: gridOtherOptions.formData.partId
         }
     ).then(({data}) => {
         console.log("GetOriPartAndNumber", data);
@@ -594,8 +314,8 @@ const SetDiffData = () => {
         }
     }))
 
-    diffGridOptions.data = diffData.filter(v=>v.quantity>0&&v.partNumber!='编号自动生成')
-
+    // diffGridOptions.data = diffData.filter(v=>v.quantity>0&&v.partNumber!='编号自动生成')
+    diffGridOptions.data = diffData.filter(v=>v.quantity>0)
 }
 //传入Data获取每个id和对应的数量，规则为 子零件的数量*父阶的数量*父阶的数量...
 const getQuantityList = (data: VxeTableDataRow[]) => {
@@ -667,7 +387,550 @@ const getQuantity = (data: any[]) => {
 }
 
 
+
+
+
 // #endregion
+
+
+
+// #region 请求接口方法
+//获取数据
+const getColums = () => {
+    axios.post('/ProcessMBom/GetColumns'
+    ).then((res: any) => {
+        if (!res.data?.result) {
+            return;
+        }
+        //添加单选按钮
+        res.data.result.unshift({ title: '', type: 'radio', width: 60, align: 'center' })
+        //添加序号列
+        res.data.result.unshift({ title: '序号', type: 'seq', width: 60, align: 'center' })
+        //添加拖动按钮
+        // res.data.result.unshift({ title: '', width: 60, align: 'center', slots: { default: 'dragBtn', header: 'dragTip' } })
+        //添加树形结构
+        res.data.result.find((item: any) => item.field === gridOtherOptions.treeConfig?.treeNode).treeNode = true;
+        //添加可编辑列
+        res.data.result.forEach((item: any) => {
+            for (let cell in gridOtherOptions.editConfig.canEditName) {
+                if (item.field === gridOtherOptions.editConfig.canEditName[cell]) {
+                    item.editRender = {
+                        name: 'input'
+                    }
+                }
+            }
+        })
+        //添加工艺过程卡列的formatter
+        res.data.result.forEach((item: any) => {
+            if (item.field == "hs_process_card") {
+                item.type = 'html';
+                item.formatter = formatProcessCard;
+            }else if (item.field =="hs_createdon") {
+                item.formatter = formatCreatedOn;
+            }else if (item.field =="hs_type") {
+                item.formatter = formatType;
+            }
+        })
+
+        console.log("GetColumns", res.data.result);
+        //获取到数据后，加载到表格中
+        gridOptions.columns = res.data.result;
+    }).catch((err: any) => {
+        console.log(err);
+    })
+}
+
+const formatProcessCard: VxeColumnPropTypes.Formatter = ({ cellValue, row, column })=>{
+    if (cellValue) {
+        return `<a href="javascript:void(0)" onclick="{
+            var item = top?.aras?.newIOMInnovator().newItem('hs_process_card', 'get');
+            item.setID('${row.hs_process_card}');
+            item = item.apply();
+            if (item.getItemCount() == 1) {
+                top.aras.uiShowItemEx(item.node, 'tab view', false);
+            } else {
+                top.aras.AlertError('权限不足！');
+            }
+        }" >查看工艺过程卡</a>`
+        
+        
+    }
+    return ""
+}
+
+const formatCreatedOn: VxeColumnPropTypes.Formatter = ({ cellValue })=>{
+    if (cellValue) {
+        //创建时间默认加8小时
+        const date = new Date(cellValue);
+        date.setHours(date.getHours() + 8);
+        return date.toLocaleString()    
+    }
+    return ""
+}
+
+const formatType: VxeColumnPropTypes.Formatter = ({ cellValue})=>{
+    if (cellValue) {
+        const typeList = gridOtherOptions?.typeList??[];
+        const label = typeList.find(v=>v.value === cellValue)?.label
+        if (label === void 0) {
+            return cellValue
+        }
+        return label
+    }
+    return ""
+}
+
+const getInitData = () => {
+    axios.post('/ProcessMBom/GetInitData',
+        {
+            id: gridOtherOptions.formData.partId
+        }
+    ).then((res: any) => {
+        console.log("GetInitData", res);
+        if (!res.data?.result) {
+            return;
+        }
+        //获取到数据后，加载到表格中
+        gridOptions.data = res.data.result;
+    }).catch((err: any) => {
+        console.log(err);
+    })
+}
+
+const getData = () => {
+    axios.post('/ProcessMBom/GetData',
+        {
+            id: gridOtherOptions.formData.formId
+        }
+    ).then((res: any) => {
+        console.log("GetData", res);
+        if (!res.data?.result) {
+            return;
+        }
+        if (res.data.code === 0) {
+            gridOptions.data = res.data.result;
+            if (res.data.result.length === 0) {
+                console.log("未获取到MBom数据");
+                getInitData()
+            }
+        }
+
+    }).catch((err: any) => {
+        console.log(err);
+    })
+}
+
+const getTypeList = () =>{
+    axios.post('/ProcessMBom/GetPartTypeList'
+    ).then((res: any) => {
+        console.log("GetPartTypeList", res);
+        if (!res.data?.result) {
+            return;
+        }
+        if (res.data.code === 0) {
+            gridOtherOptions.typeList = res.data.result;
+        }
+
+    }).catch((err: any) => {
+        console.log(err);
+    })
+
+}
+// #endregion
+
+
+
+
+// #region 按钮方法
+//表格事件
+const toolbarButtonClickEvent: VxeGridEvents.ToolbarButtonClick = ({ $grid, code }) => {
+    buttonEvent($grid, code);
+}
+
+const menuClickEvent: VxeGridEvents.MenuClick = ({ $grid, menu }) => {
+    let code = menu.code;
+    buttonEvent($grid, code === void 0?"":code);
+
+}
+
+const buttonEvent = ($grid: any, code: string) => {
+    console.log(code);
+    if (code === 'addEvent') {
+        //新增虚拟件
+
+        const rwo = $grid.getRadioRecord()
+
+        const param = {
+            aras:top?.aras,
+            itemtypeName: "hs_process_material",
+            multiselect: false,
+            userMethodColumnCfgs : {
+                'hs_type': {
+                    filterValue: '40',
+                    isFilterFixed: true,
+                },
+            },
+            callback:function (dlgRes:any) {
+                if (dlgRes !== void 0) {
+                    let itemId = dlgRes.itemID;
+                    let item = dlgRes.item;
+                    if (itemId) {
+                        if (!rwo) {
+                            return VXETable.modal.message({ content: '请选择要插入的零件！', status: 'error' })
+                        }
+                        //获取当前选中的行
+                        const selectedRow = $grid.getRadioRecord()
+                        //创建一个新行，数量为1
+                        const newRecordRow = {
+                                hs_name: item.getElementsByTagName("hs_name")[0].innerHTML,
+                                hs_number: item.getElementsByTagName("hs_number")[0].innerHTML,
+                                hs_quantity: 1,
+                                hs_type: gridOtherOptions?.typeList?.find(v=>v.value == item.getElementsByTagName("hs_type")[0].innerHTML)?.label,
+                                id: getGuID(),
+                                parentId: selectedRow?.parentId,
+                                sortOrder: selectedRow?.sortOrder,
+                            }
+                        //操作data表格，将新行插入到当前行的下方
+                        $grid.insertNextAt(newRecordRow, selectedRow)
+
+                    }
+                }
+            }
+        };
+        var wndWidth = screen.width * 0.7;
+        var wndHeight = screen.height * 0.7;
+        var options = {
+          dialogHeight: wndHeight,
+          dialogWidth: wndWidth,
+          resizable: true,
+        };
+        var wnd = top?.aras.getMainWindow();
+        wnd = wnd === top ? wnd.main : top;
+        top?.aras.modalDialogHelper.show("SearchDialog", wnd, param, options);
+       
+
+
+
+
+
+    } else if (code === 'splitEvent') {
+        //获取当前选中的行
+        const selectedRow = $grid.getRadioRecord()
+        if (!selectedRow) {
+            return VXETable.modal.message({ content: '请选择要拆分的零件！', status: 'error' })
+        }
+        //判断当前行的数量是否大于1
+        if (selectedRow.hs_quantity <= 1) {
+            return VXETable.modal.message({ content: '当前零件数量小于等于1,不允许拆分!', status: 'error' })
+        }
+        //创建一个新行，数量为1
+        const copyRow: any = (selectedRow: any) => {
+            return {
+                hs_createdby: selectedRow?.hs_createdby,
+                hs_createdon: selectedRow?.hs_createdon,
+                hs_generation: selectedRow?.hs_generation,
+                hs_name: selectedRow?.hs_name,
+                hs_number: selectedRow?.hs_number,
+                hs_process_card: selectedRow?.hs_process_card,
+                hs_quantity: 1,
+                hs_state: selectedRow?.hs_state,
+                hs_type: selectedRow?.hs_type,
+                hs_unit: selectedRow?.hs_unit,
+                hs_version: selectedRow?.hs_version,
+                id: selectedRow?.id,
+                parentId: selectedRow?.parentId,
+                partId: selectedRow?.partId,
+                sortOrder: selectedRow?.sortOrder,
+            }
+
+        }
+        const newRecordRow = copyRow(selectedRow)
+        selectedRow.hs_quantity = selectedRow.hs_quantity - 1;
+        //操作data表格，将新行插入到当前行的下方
+        $grid.insertNextAt(newRecordRow, selectedRow)
+
+
+
+    } else if (code === 'getDiffEvent') {
+        getDiffEvent()
+    } else if (code === 'deleteEvent') {
+        if ($grid) {
+            $grid.removeRadioRow()
+        }
+    } else if (code === 'expandEvent') {
+        if ($grid) {
+            $grid.setAllTreeExpand(true)
+        }
+    } else if (code === 'collapseEvent') {
+        if ($grid) {
+            $grid.clearTreeExpand(true)
+        }
+    } else if (code === 'newProcessCardEvent') {
+        const rwo = $grid.getRadioRecord()
+        let param = {
+            aras:top?.aras,
+            itemtypeName: "hs_process_card",
+            multiselect: false,
+            callback:function (dlgRes:any) {
+                if (dlgRes !== void 0) {
+                    let itemId = dlgRes.itemID;
+                    if (itemId) {
+                        if (!rwo) {
+                            return VXETable.modal.message({ content: '请选择要插入的零件！', status: 'error' })
+                        }
+                        rwo.hs_process_card = itemId
+                    }
+                }
+            }
+        };
+        var wndWidth = screen.width * 0.7;
+        var wndHeight = screen.height * 0.7;
+        var options = {
+          dialogHeight: wndHeight,
+          dialogWidth: wndWidth,
+          resizable: true,
+        };
+        var wnd = top?.aras.getMainWindow();
+        wnd = wnd === top ? wnd.main : top;
+        top?.aras.modalDialogHelper.show("SearchDialog", wnd, param, options);
+       
+
+    } else if (code === 'viewProcessCardEvent') {
+        const rwo = $grid.getRadioRecord()
+        if (!rwo) {
+            return VXETable.modal.message({ content: '请选择要查看的零件！', status: 'error' })
+        }
+        const id = rwo.hs_process_card
+        ArasMethod.showItem('hs_process_card',id)
+    } else if (code === 'upEvent'){
+        debugger
+        const row = $grid.getRadioRecord();
+        if(gridOptions.data){
+            const someLevelRow = gridOptions.data.filter(v=>v.parentId == row.parentId);
+            // sort by X_ROW_KEY
+            someLevelRow.sort((a,b)=>b._X_ROW_KEY.localeCompare(a._X_ROW_KEY));// 降序
+            // get Next Row
+            const nextRow = someLevelRow.find(v=>v._X_ROW_KEY < row._X_ROW_KEY);// 降序后，第一个比当前行小的行
+            // change Row
+            if(nextRow){
+                const nextRowSortOrder = nextRow._X_ROW_KEY;
+                nextRow._X_ROW_KEY = row._X_ROW_KEY;
+                row._X_ROW_KEY = nextRowSortOrder;
+            }
+            // 
+
+
+        }
+
+    }else if (code === 'downEvent'){
+        debugger
+        const row = $grid.getRadioRecord();
+        if(gridOptions.data){
+            const someLevelRow = gridOptions.data.filter(v=>v.parentId == row.parentId);
+            // sort by X_ROW_KEY
+            someLevelRow.sort((a,b)=>a._X_ROW_KEY.localeCompare(b._X_ROW_KEY));// 降序
+            // get Next Row
+            const nextRow = someLevelRow.find(v=>v._X_ROW_KEY > row._X_ROW_KEY);// 降序后，第一个比当前行小的行
+            // change Row
+            if(nextRow){
+                const nextRowSortOrder = nextRow._X_ROW_KEY;
+                nextRow._X_ROW_KEY = row._X_ROW_KEY;
+                row._X_ROW_KEY = nextRowSortOrder;
+            }
+            // gridOptions.data sort by X_ROW_KEY
+            // gridOptions.data.sort((a,b)=>a._X_ROW_KEY.localeCompare(b._X_ROW_KEY));// 升序
+            // const newIndex = sortableEvent.newIndex as number
+            //       const oldIndex = sortableEvent.oldIndex as number
+            //       const currRow = gridOptions.data.splice(oldIndex, 1)[0]
+            // gridOptions.data.splice(newIndex, 0, currRow)
+            debugger
+        }
+
+    }
+}
+
+
+// const fullValidEvent = async () => {
+//   const $table = xGrid.value
+//   if ($table) {
+//     const errMap = await $table.validate(true)
+//     if (errMap) {
+//       const msgList: string[] = []
+//       Object.values(errMap).forEach((errList: any) => {
+//         errList.forEach((params: any) => {
+//           const { rowIndex, column, rules } = params
+//           rules.forEach((rule: any) => {
+//             msgList.push(`第 ${rowIndex + 1} 行 ${column.title} 校验错误：${rule.message}`)
+//           })
+//         })
+//       })
+//       VXETable.modal.message({
+//         status: 'error',
+//         slots: {
+//           default () {
+//             return (
+//               <div class="red" style="max-height: 400px;overflow: auto;">
+//                 {
+//                   msgList.map(msg => <div>{ msg }</div>)
+//                 }
+//               </div>
+//             )
+//           }
+//         }
+//       })
+//     }
+// }
+
+
+//右键菜单时，选中改行
+const cellMenuEvent: VxeGridEvents.CellMenu = ({ $grid, row }) => {
+    $grid.setRadioRow(row);
+}
+const gridEvents = {
+    toolbarButtonClick: toolbarButtonClickEvent,
+    menuClick: menuClickEvent,
+    cellMenu: cellMenuEvent
+}
+// #endregion
+
+
+
+
+// #region 拖拽方法方法
+// 表格拖拽
+const xGrid = ref({} as VxeGridInstance)
+
+const showHelpTip = reactive({
+    showDraggableHelpTip: false
+})
+// SortableJs拖拽
+let sortable: any
+const treeDrop = () => {
+    const $grid = xGrid.value
+    sortable = Sortable.create($grid.$el.querySelector('.body--wrapper>.vxe-table--body tbody') as HTMLElement, {
+        handle: '.drag-btn',
+        onEnd: (sortableEvent: any) => {
+            //获取鼠标最后的位置
+            const mousePositionX = sortableEvent.originalEvent.clientX
+            const mousePosition = sortableEvent.originalEvent.clientY
+
+            // 获取鼠标所在的元素
+            const elementUnderMouse = document.elementFromPoint(mousePositionX, mousePosition)
+
+            // 获取元素在表格中的列索引
+            let columnIndex = -1
+            if (elementUnderMouse) {
+                const cellElement = elementUnderMouse.closest('td')
+                if (cellElement) {
+                    columnIndex = cellElement.cellIndex
+                }
+            }
+
+            const tableTreeData = gridOptions.data as any[]
+
+            const options = { children: '_X_ROW_CHILD' }
+            //新位置dom
+            const targetTrElem = sortableEvent.item
+            //新位置的父dom
+            const wrapperElem = targetTrElem.parentNode as HTMLElement
+
+ 
+
+            //通过判断上一个位置的dom，来判断是否是移动到相邻节点，子节点
+            var prevTrElem = targetTrElem.previousElementSibling as HTMLElement
+
+            //新位置的node
+            const targetRowNode = $grid.getRowNode(targetTrElem)
+
+            // 新位置的node为空时，
+            if (!targetRowNode) {
+                return
+            }
+
+            // 新位置的行信息
+            const selfRow = targetRowNode.item
+
+            // 新位置的node（全）
+            const selfNode = XEUtils.findTree(tableTreeData, row => row === selfRow, options)
+
+
+            if (prevTrElem) {
+                // 移动到节点
+                const prevRowNode = $grid.getRowNode(prevTrElem)
+                if (!prevRowNode) {
+                    return
+                }
+                // 旧位置的行信息
+                const prevRow = prevRowNode.item
+                // 旧位置的node（全）
+                const prevNode = XEUtils.findTree(tableTreeData, row => row === prevRow, options)
+
+                if (XEUtils.findTree(selfRow[options.children], row => prevRow === row, options)) {
+                    // 错误的移动
+                    //旧位置
+                    const oldIndex = sortableEvent.oldIndex as number
+                    const oldTrElem = wrapperElem.children[oldIndex]
+                    wrapperElem.insertBefore(targetTrElem, oldTrElem)
+                    return VXETable.modal.message({ content: '不允许自己给自己拖动！', status: 'error' })
+                }
+                
+                const currRow = selfNode.items.splice(selfNode.index, 1)[0]
+
+                let toChild = false;
+                //如果节点有子节点，且展开，则移动到子节点
+                //如果节点没有子节点，则移动到子节点
+                debugger;
+                if ((prevRow[options.children] && prevRow[options.children].length > 0 && $grid.isTreeExpandByRow(prevRow) && columnIndex !== 0) 
+                || (prevRow[options.children] && prevRow[options.children].length === 0 && columnIndex !== 0)) {
+                    toChild = true;
+                }
+
+                XEUtils.remove(tableTreeData, item => item === currRow)
+
+
+                // 移动到子节点
+                if (toChild) {
+                    prevRow[options.children].splice(0, 0, currRow);
+
+                } else {
+                                        
+   
+                    // 移动到相邻节点
+                    prevNode.items.splice(prevNode.index + (selfNode.index < prevNode.index ? 0 : 1), 0, currRow)
+                }
+                
+                // 重新计算树的parentId
+                XEUtils.eachTree(tableTreeData, (item, index, items, path, parent) => {
+                        item.children.forEach((child: any) => {
+                        child.parentId = item.id
+                    })
+                }, options)
+
+            } else {
+                // 移动到第一行
+                debugger;
+                //被移除的数组
+                const currRow = selfNode.items.splice(selfNode.index, 1)[0]
+                // selfNode._X_ROW_CHILD = null
+                //删除数组内currRow
+                XEUtils.remove(tableTreeData, item => item === currRow)
+                //被移除的数组父阶为null
+                currRow.parentId = null
+                //将移除的数组放到第一个
+                tableTreeData.unshift(currRow)
+                
+            }
+
+        
+            console.log("拖拽前", gridOptions.data);
+            // 如果变动了树层级，需要刷新数据
+            gridOptions.data = [...tableTreeData]
+            console.log("拖拽后", gridOptions.data);
+        }
+    })
+}
+// #endregion
+
 
 
 
@@ -681,6 +944,7 @@ function getGuID() {
 }
 
 // #endregion
+
 
 
 
@@ -717,12 +981,11 @@ watch(() => gridOptions.data, () => {
         }
         console.log("hs_mbom", transformData);
         if (gridOtherOptions.tableInitData && transformData) {
-            gridOtherOptions.tableInitData  = transformData;
+            gridOtherOptions.tableInitData  = transformData
         }
         if (parent?.thisItem) {
             transformData = transformData?.sort((a: any, b: any) => a._X_ROW_KEY - b._X_ROW_KEY)
             parent.thisItem.setProperty("hs_mbom", JSON.stringify(transformData))
-            console.log("hs_mbom", transformData);
         }
     }
     
@@ -751,6 +1014,7 @@ const getChildrenList = (id: any, data: any) => {
 // #region 生命周期
 
 onMounted(() => {
+    getTypeList()
     //获取表单数据
     gridOtherOptions.formData = ArasUtil.getFormData()
     //获取表格列    
@@ -762,106 +1026,7 @@ onMounted(() => {
     //获取原始零件和数量
     GetOriPartAndNumber()
 })
-//获取数据
-const getColums = () => {
-    axios.post('/ProcessMBom/GetColumns'
-    ).then((res: any) => {
-        if (!res.data?.result) {
-            return;
-        }
-        //添加单选按钮
-        res.data.result.unshift({ title: '', type: 'radio', width: 60, align: 'center' })
-        //添加序号列
-        res.data.result.unshift({ title: '序号', type: 'seq', width: 60, align: 'center' })
-        //添加拖动按钮
-        // res.data.result.unshift({ title: '', width: 60, align: 'center', slots: { default: 'dragBtn', header: 'dragTip' } })
-        //添加树形结构
-        res.data.result.find((item: any) => item.field === gridOtherOptions.treeConfig?.treeNode).treeNode = true;
-        //添加可编辑列
-        res.data.result.forEach((item: any) => {
-            for (let cell in gridOtherOptions.editConfig.canEditName) {
-                if (item.field === gridOtherOptions.editConfig.canEditName[cell]) {
-                    item.editRender = {
-                        name: 'input'
-                    }
-                }
-            }
-        })
-        //添加工艺过程卡列的formatter
-        res.data.result.forEach((item: any) => {
-            if (item.field == "hs_process_card") {
-                item.type = 'html';
-                item.formatter = formatProcessCard;
-            }
-        })
 
-        console.log("GetColumns", res.data.result);
-        //获取到数据后，加载到表格中
-        gridOptions.columns = res.data.result;
-    }).catch((err: any) => {
-        console.log(err);
-    })
-}
-
-const formatProcessCard: VxeColumnPropTypes.Formatter = ({ cellValue, row, column })=>{
-    if (cellValue) {
-        console.log("formatProcessCard", cellValue, row, column);
-        return `<a href="javascript:void(0)" onclick="{
-            console.log('openProcessCard', '${row.hs_process_card}');
-            var item = top?.aras?.newIOMInnovator().newItem('hs_process_card', 'get');
-            item.setID('${row.hs_process_card}');
-            item = item.apply();
-            if (item.getItemCount() == 1) {
-                top.aras.uiShowItemEx(item.node, 'tab view', false);
-            } else {
-                top.aras.AlertError('权限不足！');
-            }
-        }" >查看工艺过程卡</a>`
-        
-        
-    }
-    return ""
-}
-
-const getInitData = () => {
-    axios.post('/ProcessMBom/GetInitData',
-        {
-            id: gridOtherOptions.formData.formId
-        }
-    ).then((res: any) => {
-        console.log("GetInitData", res);
-        if (!res.data?.result) {
-            return;
-        }
-        //获取到数据后，加载到表格中
-        gridOptions.data = res.data.result;
-    }).catch((err: any) => {
-        console.log(err);
-    })
-}
-
-const getData = () => {
-    axios.post('/ProcessMBom/GetData',
-        {
-            id: gridOtherOptions.formData.formId
-        }
-    ).then((res: any) => {
-        console.log("GetData", res);
-        if (!res.data?.result) {
-            return;
-        }
-        if (res.data.code === 0) {
-            gridOptions.data = res.data.result;
-            if (res.data.result.length === 0) {
-                console.log("未获取到MBom数据");
-                getInitData()
-            }
-        }
-
-    }).catch((err: any) => {
-        console.log(err);
-    })
-}
 
 
 let initTime: any

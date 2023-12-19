@@ -26,11 +26,20 @@ export default{
 
     //获取表单数据
     getFormData(){
-        if (!this.isDevelopment) 
-        {   
-            ArasConfig.data().formData.formId = parent.thisItem.getProperty('id');
+        let formData = {
+            formId: '',
+            partId: '',
         }
-        return ArasConfig.data().formData
+        if (!this.isDevelopment()) 
+        {   
+            formData.formId = parent.thisItem.getProperty('id');
+            formData.partId = parent.thisItem.getProperty('hs_ebom');
+        }else{
+            formData.formId = ArasConfig.data().formData.formId
+            formData.partId = ArasConfig.data().formData.partId
+        }
+        console.log('formData',formData)
+        return formData
     },
 
     //获取innovator
