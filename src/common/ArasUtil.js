@@ -38,7 +38,6 @@ export default{
             formData.formId = ArasConfig.data().formData.formId
             formData.partId = ArasConfig.data().formData.partId
         }
-        console.log('formData',formData)
         return formData
     },
 

@@ -11,11 +11,11 @@
         </div>
 
         <vxe-grid ref="xGrid" v-bind="gridOptions" v-on="gridEvents">
-            <template #dragBtn>
+            <!-- <template #dragBtn>
                 <span class="drag-btn">
                     <i class="vxe-icon-sort"></i>
                 </span>
-            </template>
+            </template> -->
             <template #dragTip>
                 <vxe-tooltip v-model="showHelpTip.showDraggableHelpTip" content="按住后可以上下拖动排序！" enterable>
                     <i class="vxe-icon-question-circle-fill"
@@ -29,7 +29,7 @@
 
 import { reactive, ref, watch, onUnmounted, nextTick, onMounted } from 'vue'
 import { VXETable, VxeGridInstance, VxeGridProps, VxeGridEvents, VxeTableDataRow, VxeModalDefines, VxeColumnPropTypes, config } from 'vxe-table'
-import XEUtils from 'xe-utils'
+import XEUtils, { ceil } from 'xe-utils'
 import axios from '@/common/ArasHttp'
 import Sortable from 'sortablejs'
 import ArasUtil from '@/common/ArasUtil'
@@ -94,22 +94,17 @@ const gridOptions = reactive({
     editRules: {
         hs_quantity: [
             { required: true, type:'number', message: '数量不能为空', trigger: 'blur' },
-            { pattern: /^[1-9]\d*$/, message: '数量必须为正整数', trigger: 'blur' }
-        ],
-        hs_name: [
-            { required: true, message: '名称不能为空', trigger: 'blur' },
-            //如果改行是虚拟件，才能进行更改
-            // { validator: (event) => {
-            //     let cellValueCopy = event.cellValue;
-            //     let isProcessVirtualPart = event.row.hs_type === '工艺虚拟件';
-            //     if (isProcessVirtualPart === false) {
-            //         event.cellValue = event.row.hs_name;
+            { pattern: /^[1-9]\d*$/, message: '数量必须为正整数', trigger: 'blur' },
+            // { validator: ({rule, row,cellValue})=>{
+            //     debugger;
+            //     //如果cellValue不是正整数，则返回123
+            //     if (!/^[1-9]\d*$/.test(cellValue)) {
+            //         console.log(rule, row,cellValue)
+            //         row.hs_quantity=1
             //     }
-            //     // if (selectedRow?.hs_type != '工艺虚拟件') {
-            //     //     return
-            //     // }
-            // }, trigger: 'blur' }
-        ],
+                
+            // }, trigger: 'change' }
+        ]
     },
     toolbarConfig: {
         buttons: [
@@ -126,6 +121,7 @@ const gridOptions = reactive({
             icon: 'vxe-icon-refresh',
             iconLoading: 'vxe-icon-refresh roll',
             queryMethod: () => {
+                gridOptions.data = []
                 gridOptions.loading = true;
                 //获取表单数据
                 gridOtherOptions.formData = ArasUtil.getFormData()
@@ -148,7 +144,7 @@ const gridOptions = reactive({
                     //单选操作
                     { code: 'addEvent', name: '插入工艺虚拟件', visible: true, disabled: false },
                     { code: 'splitEvent', name: '拆分零件', visible: true, disabled: false },
-                    { code: 'newProcessCardEvent', name: '新建工艺过程卡', visible: true, disabled: false },
+                    { code: 'newProcessCardEvent', name: '插入工艺过程卡', visible: true, disabled: false },
                     { code: 'viewProcessCardEvent', name: '查看工艺过程卡', visible: true, disabled: false },
 
                     { code: 'deleteEvent', name: '删除行', prefixIcon: 'vxe-icon-delete', visible: true, disabled: false },
@@ -408,11 +404,11 @@ const getColums = () => {
             return;
         }
         //添加单选按钮
-        res.data.result.unshift({ title: '', type: 'radio', width: 60, align: 'center' })
+        // res.data.result.unshift({ title: '', type: 'radio', width: 60, align: 'center' })
         //添加序号列
         res.data.result.unshift({ title: '序号', type: 'seq', width: 60, align: 'center' })
         //添加拖动按钮
-        res.data.result.unshift({ title: '', width: 60, align: 'center', slots: { default: 'dragBtn', header: 'dragTip' } })
+        // res.data.result.unshift({ title: '', width: 60, align: 'center', slots: { default: 'dragBtn', header: 'dragTip' } })
         //添加树形结构
         res.data.result.find((item: any) => item.field === gridOtherOptions.treeConfig?.treeNode).treeNode = true;
         //添加可编辑列
@@ -805,24 +801,21 @@ const showHelpTip = reactive({
 let sortable: any
 const treeDrop = () => {
     const $grid = xGrid.value
+    let mouseBeforePositionX : number;
+    let mouseAfterPositionX : number;
+
     sortable = Sortable.create($grid.$el.querySelector('.body--wrapper>.vxe-table--body tbody') as HTMLElement, {
-        handle: '.drag-btn',
-        
+        handle: '.vxe-body--row',
+        onStart:(sortableEvent: any)=>{
+            mouseBeforePositionX = sortableEvent.originalEvent.clientX
+        },
         onEnd: (sortableEvent: any) => {
             //获取鼠标最后的位置
-            const mousePositionX = sortableEvent.originalEvent.clientX
-            const mousePosition = sortableEvent.originalEvent.clientY
-
-            // 获取鼠标所在的元素
-            const elementUnderMouse = document.elementFromPoint(mousePositionX, mousePosition)
-
-            // 获取元素在表格中的列索引
-            let columnIndex = -1
-            if (elementUnderMouse) {
-                const cellElement = elementUnderMouse.closest('td')
-                if (cellElement) {
-                    columnIndex = cellElement.cellIndex
-                }
+            mouseAfterPositionX = sortableEvent.originalEvent.clientX
+            //判断鼠标是否右移50px
+            let toChild = false;
+            if(mouseAfterPositionX>mouseBeforePositionX+50){
+                toChild = true;
             }
 
             const tableTreeData = gridOptions.data as any[]
@@ -871,12 +864,7 @@ const treeDrop = () => {
 
                 // tableTreeDatad的原始对象
                 const currRow = selfNode.items.splice(selfNode.index, 1)[0]
-                let toChild = false;
- 
-                if (columnIndex !== 0) 
-                {
-                    toChild = true;
-                }
+                
 
                const index = tableTreeData.findIndex(v=>v.id === prevRow.id)
                XEUtils.remove(tableTreeData, item => item.id === currRow.id)

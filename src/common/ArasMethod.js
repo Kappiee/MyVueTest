@@ -16,7 +16,6 @@ export default {
     },
     
     showItem(itemtype, itemid, viewMode='tab view', isOpenInTearOff=false) {
-        debugger;
         var item = top?.aras?.newIOMInnovator().newItem(itemtype, "get");
         item.setID(itemid);
         item = item.apply();
