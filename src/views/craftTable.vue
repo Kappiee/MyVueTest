@@ -65,6 +65,12 @@ const gridOptions = reactive({
     size: 'mini',
     id: 'id',
     showOverflow: true,
+    sortConfig: {
+        defaultSort: {
+            field: 'sortOrder',
+            order: 'asc'
+        }
+    },
     loadingConfig: {
         spinner: 'vxe-icon-loading',
         tip: '加载中...',
@@ -110,10 +116,10 @@ const gridOptions = reactive({
             { code: 'expandEvent', name: '全部展开' },
             { code: 'collapseEvent', name: '全部收起' },
             { code: 'getDiffEvent', name: '检查责信度' },
-            { code: 'upEvent', name: '上移一层' },
-            { code: 'downEvent', name: '下移一层' },
-            { code: 'leftEvent', name: '左移一层' },
-            { code: 'rightEvent', name: '右移一层' },
+            // { code: 'upEvent', name: '上移一层' },
+            // { code: 'downEvent', name: '下移一层' },
+            // { code: 'leftEvent', name: '左移一层' },
+            // { code: 'rightEvent', name: '右移一层' },
         ],
         perfect: true,
         refresh: {
@@ -239,7 +245,6 @@ const GetOriPartAndNumber = () => {
             id: gridOtherOptions.formData.partId
         }
     ).then(({data}) => {
-        console.log("GetOriPartAndNumber", data);
         if (!data?.result) {
             return;
         }
@@ -407,7 +412,7 @@ const getColums = () => {
         //添加序号列
         res.data.result.unshift({ title: '序号', type: 'seq', width: 60, align: 'center' })
         //添加拖动按钮
-        // res.data.result.unshift({ title: '', width: 60, align: 'center', slots: { default: 'dragBtn', header: 'dragTip' } })
+        res.data.result.unshift({ title: '', width: 60, align: 'center', slots: { default: 'dragBtn', header: 'dragTip' } })
         //添加树形结构
         res.data.result.find((item: any) => item.field === gridOtherOptions.treeConfig?.treeNode).treeNode = true;
         //添加可编辑列
@@ -429,14 +434,15 @@ const getColums = () => {
                 item.formatter = formatCreatedOn;
             }else if (item.field =="hs_type") {
                 item.formatter = formatType;
+            }else if (item.field =="sortOrder") {
+                item.formatter = formatSortOrder;
             }
         })
 
-        console.log("GetColumns", res.data.result);
         //获取到数据后，加载到表格中
         gridOptions.columns = res.data.result;
     }).catch((err: any) => {
-        console.log(err);
+        console.error(err);
     })
 }
 
@@ -479,6 +485,12 @@ const formatType: VxeColumnPropTypes.Formatter = ({ cellValue})=>{
     }
     return ""
 }
+const formatSortOrder: VxeColumnPropTypes.Formatter = ({ cellValue})=>{
+    if (cellValue) {
+        return parseInt(cellValue)
+    }
+    return 0
+}
 
 const getInitData = () => {
     axios.post('/ProcessMBom/GetInitData',
@@ -486,14 +498,13 @@ const getInitData = () => {
             id: gridOtherOptions.formData.partId
         }
     ).then((res: any) => {
-        console.log("GetInitData", res);
         if (!res.data?.result) {
             return;
         }
         //获取到数据后，加载到表格中
         gridOptions.data = res.data.result;
     }).catch((err: any) => {
-        console.log(err);
+        console.error(err);
     })
 }
 
@@ -503,27 +514,24 @@ const getData = () => {
             id: gridOtherOptions.formData.formId
         }
     ).then((res: any) => {
-        console.log("GetData", res);
         if (!res.data?.result) {
             return;
         }
         if (res.data.code === 0) {
             gridOptions.data = res.data.result;
             if (res.data.result.length === 0) {
-                console.log("未获取到MBom数据");
                 getInitData()
             }
         }
 
     }).catch((err: any) => {
-        console.log(err);
+        console.error(err);
     })
 }
 
 const getTypeList = () =>{
     axios.post('/ProcessMBom/GetPartTypeList'
     ).then((res: any) => {
-        console.log("GetPartTypeList", res);
         if (!res.data?.result) {
             return;
         }
@@ -532,7 +540,7 @@ const getTypeList = () =>{
         }
 
     }).catch((err: any) => {
-        console.log(err);
+        console.error(err);
     })
 
 }
@@ -554,7 +562,6 @@ const menuClickEvent: VxeGridEvents.MenuClick = ({ $grid, menu }) => {
 }
 
 const buttonEvent = ($grid: any, code: string) => {
-    console.log(code);
     if (code === 'addEvent') {
         //新增虚拟件
 
@@ -703,7 +710,6 @@ const buttonEvent = ($grid: any, code: string) => {
         const id = rwo.hs_process_card
         ArasMethod.showItem('hs_process_card',id)
     } else if (code === 'upEvent'){
-        debugger
         const row = $grid.getRadioRecord();
         if(gridOptions.data){
             const someLevelRow = gridOptions.data.filter(v=>v.parentId == row.parentId);
@@ -723,7 +729,6 @@ const buttonEvent = ($grid: any, code: string) => {
         }
 
     }else if (code === 'downEvent'){
-        debugger
         const row = $grid.getRadioRecord();
         if(gridOptions.data){
             const someLevelRow = gridOptions.data.filter(v=>v.parentId == row.parentId);
@@ -737,13 +742,6 @@ const buttonEvent = ($grid: any, code: string) => {
                 nextRow._X_ROW_KEY = row._X_ROW_KEY;
                 row._X_ROW_KEY = nextRowSortOrder;
             }
-            // gridOptions.data sort by X_ROW_KEY
-            // gridOptions.data.sort((a,b)=>a._X_ROW_KEY.localeCompare(b._X_ROW_KEY));// 升序
-            // const newIndex = sortableEvent.newIndex as number
-            //       const oldIndex = sortableEvent.oldIndex as number
-            //       const currRow = gridOptions.data.splice(oldIndex, 1)[0]
-            // gridOptions.data.splice(newIndex, 0, currRow)
-            debugger
         }
 
     }
@@ -803,12 +801,13 @@ const xGrid = ref({} as VxeGridInstance)
 const showHelpTip = reactive({
     showDraggableHelpTip: false
 })
-// SortableJs拖拽
+// SortableJs拖拽,Dom操作和Vue数据保持一致
 let sortable: any
 const treeDrop = () => {
     const $grid = xGrid.value
     sortable = Sortable.create($grid.$el.querySelector('.body--wrapper>.vxe-table--body tbody') as HTMLElement, {
         handle: '.drag-btn',
+        
         onEnd: (sortableEvent: any) => {
             //获取鼠标最后的位置
             const mousePositionX = sortableEvent.originalEvent.clientX
@@ -850,65 +849,62 @@ const treeDrop = () => {
             // 新位置的行信息
             const selfRow = targetRowNode.item
 
-            // 新位置的node（全）
+            // tableTreeDatad的原始对象
             const selfNode = XEUtils.findTree(tableTreeData, row => row === selfRow, options)
 
-
+            // 判断移动后的上一个位置节点是否有节点
             if (prevTrElem) {
-                // 移动到节点
                 const prevRowNode = $grid.getRowNode(prevTrElem)
                 if (!prevRowNode) {
                     return
                 }
-                // 旧位置的行信息
                 const prevRow = prevRowNode.item
-                // 旧位置的node（全）
-                const prevNode = XEUtils.findTree(tableTreeData, row => row === prevRow, options)
 
+                // 判断是否是自己给自己拖动
                 if (XEUtils.findTree(selfRow[options.children], row => prevRow === row, options)) {
-                    // 错误的移动
-                    //旧位置
                     const oldIndex = sortableEvent.oldIndex as number
                     const oldTrElem = wrapperElem.children[oldIndex]
+                    // 重新插入到旧位置
                     wrapperElem.insertBefore(targetTrElem, oldTrElem)
                     return VXETable.modal.message({ content: '不允许自己给自己拖动！', status: 'error' })
                 }
-                
-                const currRow = selfNode.items.splice(selfNode.index, 1)[0]
 
+                // tableTreeDatad的原始对象
+                const currRow = selfNode.items.splice(selfNode.index, 1)[0]
                 let toChild = false;
-                //如果节点有子节点，且展开，则移动到子节点
-                //如果节点没有子节点，则移动到子节点
-                debugger;
-                if ((prevRow[options.children] && prevRow[options.children].length > 0 && $grid.isTreeExpandByRow(prevRow) && columnIndex !== 0) 
-                || (prevRow[options.children] && prevRow[options.children].length === 0 && columnIndex !== 0)) {
+ 
+                if (columnIndex !== 0) 
+                {
                     toChild = true;
                 }
 
-                XEUtils.remove(tableTreeData, item => item === currRow)
-
-
+               const index = tableTreeData.findIndex(v=>v.id === prevRow.id)
+               XEUtils.remove(tableTreeData, item => item.id === currRow.id)
+               
                 // 移动到子节点
                 if (toChild) {
+                    // XEUtils.remove(tableTreeData, item => item.id === currRow.id)
+                    XEUtils.remove(prevRow[options.children], item => item.id === currRow.id)
                     prevRow[options.children].splice(0, 0, currRow);
+                    currRow.parentId = prevRow.id
+                    tableTreeData.splice(0, 0, currRow)
 
                 } else {
-                                        
-   
-                    // 移动到相邻节点
-                    prevNode.items.splice(prevNode.index + (selfNode.index < prevNode.index ? 0 : 1), 0, currRow)
+                    // 判断preNode的节点是否展开，如果展开，则移动到子节点
+                    if (prevRow[options.children] &&prevRow[options.children].length>0 && $grid.isTreeExpandByRow(prevRow)) {
+                        prevRow[options.children].splice(0, 0, currRow);
+                        currRow.parentId = prevRow.id
+                        tableTreeData.splice(0, 0, currRow)
+                    } else {
+                        // 移动到相邻节点
+                        currRow.parentId = prevRow.parentId
+                        tableTreeData.splice(index+1, 0, currRow)
+                    }     
+                    
                 }
-                
-                // 重新计算树的parentId
-                XEUtils.eachTree(tableTreeData, (item, index, items, path, parent) => {
-                        item.children.forEach((child: any) => {
-                        child.parentId = item.id
-                    })
-                }, options)
 
             } else {
                 // 移动到第一行
-                debugger;
                 //被移除的数组
                 const currRow = selfNode.items.splice(selfNode.index, 1)[0]
                 // selfNode._X_ROW_CHILD = null
@@ -921,11 +917,10 @@ const treeDrop = () => {
                 
             }
 
-        
-            console.log("拖拽前", gridOptions.data);
+            // 折叠选中行
+            // $grid.setTreeExpand(selfRow, false)
             // 如果变动了树层级，需要刷新数据
             gridOptions.data = [...tableTreeData]
-            console.log("拖拽后", gridOptions.data);
         }
     })
 }
@@ -960,8 +955,6 @@ declare global{
 watch(() => gridOptions.data, () => {
     let transformData = gridOptions.data
     if (gridOptions.data) {
-        console.log("gridOptions.data", gridOptions.data);
-        console.log("xGrid.value.getRecordset", xGrid.value.getRecordset());
         const partChange = xGrid.value.getRecordset();
         const insertRecords = partChange.insertRecords;
         const removeRecords = partChange.removeRecords;
@@ -979,7 +972,6 @@ watch(() => gridOptions.data, () => {
             const removeIdList = removeList.map((item: any) => item.id)
             transformData = gridOptions.data.filter((item: any) => !removeIdList.includes(item.id))
         }
-        console.log("hs_mbom", transformData);
         if (gridOtherOptions.tableInitData && transformData) {
             gridOtherOptions.tableInitData  = transformData
         }
