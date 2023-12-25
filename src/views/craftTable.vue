@@ -201,6 +201,7 @@ const diffGridModel = reactive({
 const diffGridOptions = reactive({
     size: "mini",
     loading: true,
+    emptyText: '零件已全部使用',
     rowConfig: {
         useKey: true,
         isHover: true,
@@ -257,6 +258,7 @@ const GetOriPartAndNumber = () => {
 }
 const getDiffEvent = () =>{
     if (canOpenDiffBtn.value) {
+        diffGridOptions.loading = true
         openDiffButtun.value = true
         SetDiffData()
         diffGridOptions.loading = false
@@ -600,8 +602,8 @@ const buttonEvent = ($grid: any, code: string) => {
                 }
             }
         };
-        var wndWidth = screen.width * 0.7;
-        var wndHeight = screen.height * 0.7;
+        var wndWidth = screen.width * 0.5;
+        var wndHeight = screen.height * 0.5;
         var options = {
           dialogHeight: wndHeight,
           dialogWidth: wndWidth,
@@ -686,8 +688,8 @@ const buttonEvent = ($grid: any, code: string) => {
                 }
             }
         };
-        var wndWidth = screen.width * 0.7;
-        var wndHeight = screen.height * 0.7;
+        var wndWidth = screen.width * 0.5;
+        var wndHeight = screen.height * 0.5;
         var options = {
           dialogHeight: wndHeight,
           dialogWidth: wndWidth,
@@ -963,6 +965,7 @@ watch(() => gridOptions.data, () => {
         if (gridOtherOptions.tableInitData && transformData) {
             gridOtherOptions.tableInitData  = transformData
         }
+        console.log(transformData)
         if (parent?.thisItem) {
             transformData = transformData?.sort((a: any, b: any) => a._X_ROW_KEY - b._X_ROW_KEY)
             parent.thisItem.setProperty("hs_mbom", JSON.stringify(transformData))
