@@ -1,7 +1,7 @@
 <template>
    
         <div>
-            <vxe-modal v-model="openDiffButtun" width="600" v-bind="diffGridModel" show-footer >
+            <vxe-modal v-model="openDiffButton" width="600" v-bind="diffGridModel" show-footer >
                 <template #default>
                     <vxe-grid
                     v-bind="diffGridOptions">
@@ -28,12 +28,14 @@
 <script lang="ts" setup>
 
 import { reactive, ref, watch, onUnmounted, nextTick, onMounted } from 'vue'
-import { VXETable, VxeGridInstance, VxeGridProps, VxeGridEvents, VxeTableDataRow, VxeModalDefines, VxeColumnPropTypes, config } from 'vxe-table'
-import XEUtils, { ceil } from 'xe-utils'
+import { VXETable, VxeGridInstance, VxeGridProps, VxeGridEvents, VxeTableDataRow, VxeModalDefines, VxeColumnPropTypes} from 'vxe-table'
+import XEUtils from 'xe-utils'
 import axios from '@/common/ArasHttp'
 import Sortable from 'sortablejs'
 import ArasUtil from '@/common/ArasUtil'
 import ArasMethod from '@/common/ArasMethod'
+import TableHeightHook from '@/hooks/TableHeightHook'
+let {height} = TableHeightHook();
 
 
 
@@ -61,7 +63,7 @@ const gridOptions = reactive({
     loading: true,
     border: true,
     class: 'sortable-tree-demo',
-    height: 500,
+    height: height.value,
     size: 'mini',
     id: 'id',
     showOverflow: true,
@@ -126,7 +128,7 @@ const gridOptions = reactive({
                 //获取表单数据
                 gridOtherOptions.formData = ArasUtil.getFormData()
                 //获取表格列    
-                getColums()
+                getColumns()
                 //获取该id的所有MBom数据
                 getData()
                 gridOptions.loading = false;
@@ -165,24 +167,13 @@ const gridOptions = reactive({
     data: [],
 } as VxeGridProps)
 
-//设置高度
-const setHeight = () => {
-    const totalHeight = document.documentElement.clientHeight;
-    if (document.querySelector('.vxe-toolbar') != null) {
-        const toolbarElement = document.querySelector('.vxe-toolbar');
-        const toobarHeight = toolbarElement ? toolbarElement.clientHeight + 15 : 0;
-        gridOptions.height = totalHeight - toobarHeight
-        diffGridModel.height = (totalHeight - toobarHeight)*2/3
-    }
-}
-
 // #endregion
 
 
 
 // #region 检查责信度配置与方法
 
-const openDiffButtun = ref(false)
+const openDiffButton = ref(false)
 
 const canOpenDiffBtn = ref(false);
 
@@ -226,11 +217,11 @@ const diffGridOptions = reactive({
 } as VxeGridProps)
 
 class DiffDataModel {
-    partNumber: string = ''
-    quantity: number = 1
+    partNumber = ''
+    quantity = 1
 }
 class DiffDataAndColorModel extends DiffDataModel {
-    isPositive: boolean = false
+    isPositive = false
 }
 
 let oriPartAndNumber :DiffDataModel[];
@@ -259,7 +250,7 @@ const GetOriPartAndNumber = () => {
 const getDiffEvent = () =>{
     if (canOpenDiffBtn.value) {
         diffGridOptions.loading = true
-        openDiffButtun.value = true
+        openDiffButton.value = true
         SetDiffData()
         diffGridOptions.loading = false
     }else{
@@ -399,7 +390,7 @@ const getQuantity = (data: any[]) => {
 
 // #region 请求接口方法
 //获取数据
-const getColums = () => {
+const getColumns = () => {
     axios.post('/ProcessMBom/GetColumns'
     ).then((res: any) => {
         if (!res.data?.result) {
@@ -1001,7 +992,7 @@ onMounted(() => {
     //获取表单数据
     gridOtherOptions.formData = ArasUtil.getFormData()
     //获取表格列    
-    getColums()
+    getColumns()
     //获取该id的所有MBom数据
     getData()
     gridOptions.loading = false;
@@ -1014,8 +1005,6 @@ onMounted(() => {
 
 let initTime: any
 nextTick(() => {
-    //设置高度
-    setHeight()
 
     // 加载完成之后在绑定拖动事件
     initTime = setTimeout(() => {

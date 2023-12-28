@@ -15,10 +15,12 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/CraftTable',
     name: 'CraftTable',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
     component: () => import(/* CraftTable: "about" */ '../views/CraftTable.vue')
+  },
+  {
+    path: '/ExportPartBom',
+    name: 'ExportPartBom',
+    component: () => import(/* CraftTable: "about" */ '../views/ExportPartBom.vue')
   }
 ]
 

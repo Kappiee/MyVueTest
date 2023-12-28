@@ -2,7 +2,7 @@ export default{
     data() {
         return {
             token:'',
-            innovatorServer: 'hsplm',
+            innovatorServer: 'innovatorServer',
             localApiUrl: 'http://localhost:55798/api',
             productionApiUrl: window.location.origin + '/WYZX_8D/api',
             formData : {
