@@ -10,7 +10,7 @@ export async function ExportPartBom(data:VxeTableDataRow[], partId : string,user
         VXETable.modal.message({ content: '请选择导出属性', status: 'error' })
         return;
     }
-    const selectDataName: PartProperty[] = selectData.map((item: VxeTableDataRow) => ({ name: item.name,label:item.label, isExport: item.isExport }));
+    const selectDataName: PartProperty[] = data.map((item: VxeTableDataRow) => ({ name: item.name,label:item.label, isExport: item.isExport }));
     const params = {
         propertyList: selectDataName,
         partId
