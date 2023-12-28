@@ -10,7 +10,6 @@ export const getTableHeaderHeight = () => {
           for (const entry of entries) {
             const target = entry.target as HTMLElement;
             HeaderHeight.value =  target.offsetHeight
-            console.log("headerHeight1",HeaderHeight.value)
           }
         });
 

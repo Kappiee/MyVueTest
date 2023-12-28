@@ -8,13 +8,10 @@ export function getTableHeight(){
         //获取widow可视区域的高度
         const windowViewHeight = document.documentElement.clientHeight
         tableHeight.value = windowViewHeight
-        console.log("@",tableHeight.value)
         if (vxeButton !== null ) {
             tableHeight.value -= getFullHeight('.vxe-button') 
         } 
         if (vxeHeader !== null) {
-            debugger
-            console.log("@",getFullHeight('.vxe-header--row'))
             tableHeight.value -=  getFullHeight('.vxe-header--row')
         }
     }
