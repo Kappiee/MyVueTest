@@ -679,14 +679,14 @@ const buttonEvent = ($grid: any, code: string) => {
                 }
             }
         };
-        var wndWidth = screen.width * 0.5;
-        var wndHeight = screen.height * 0.5;
-        var options = {
+        const wndWidth = screen.width * 0.5;
+        const wndHeight = screen.height * 0.5;
+        const options = {
           dialogHeight: wndHeight,
           dialogWidth: wndWidth,
           resizable: true,
         };
-        var wnd = top?.aras.getMainWindow();
+        let wnd = top?.aras.getMainWindow();
         wnd = wnd === top ? wnd.main : top;
         top?.aras.modalDialogHelper.show("SearchDialog", wnd, param, options);
        
@@ -859,13 +859,13 @@ const treeDrop = () => {
                 const currRow = selfNode.items.splice(selfNode.index, 1)[0]
                 
 
-               const index = tableTreeData.findIndex(v=>v.id === prevRow.id)
-               XEUtils.remove(tableTreeData, item => item.id === currRow.id)
+               const index = tableTreeData.findIndex(v=>v._X_ROW_KEY === prevRow._X_ROW_KEY)
+               XEUtils.remove(tableTreeData, item => item._X_ROW_KEY === currRow._X_ROW_KEY)
                
                 // 移动到子节点
                 if (toChild) {
                     // XEUtils.remove(tableTreeData, item => item.id === currRow.id)
-                    XEUtils.remove(prevRow[options.children], item => item.id === currRow.id)
+                    XEUtils.remove(prevRow[options.children], item => item._X_ROW_KEY === currRow._X_ROW_KEY)
                     prevRow[options.children].splice(0, 0, currRow);
                     currRow.parentId = prevRow.id
                     tableTreeData.splice(0, 0, currRow)
