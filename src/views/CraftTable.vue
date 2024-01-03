@@ -185,7 +185,7 @@ const diffGridModel = reactive({
     dblclickZoom: true,
     resize: true,
     draggable: true,
-    height: 200,
+    height: height.value,
 
 } as VxeModalDefines.ModalOptions)
 
@@ -308,8 +308,7 @@ const SetDiffData = () => {
         }
     }))
 
-    // diffGridOptions.data = diffData.filter(v=>v.quantity>0&&v.partNumber!='编号自动生成')
-    diffGridOptions.data = diffData.filter(v=>v.quantity>0)
+    diffGridOptions.data = diffData.filter(v=>v.quantity>0&&v.partNumber.substring(0,2)!="40")
 }
 //传入Data获取每个id和对应的数量，规则为 子零件的数量*父阶的数量*父阶的数量...
 const getQuantityList = (data: VxeTableDataRow[]) => {
