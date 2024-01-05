@@ -1,8 +1,8 @@
-import axios from '@/common/ArasHttp';
+import axios from '@/common/arasHttp';
 import { onMounted, reactive } from 'vue';
 import { VXETable } from 'vxe-table';
-import { PartProperty } from '@/types/ExportPartBomTypes';
-export function getPartPropertyList (userId = "30B991F927274FA3829655F50C99472E") {
+import { PartProperty } from '@/types/exportPartBom';
+export function useGetPartPropertyColumns (userId = "30B991F927274FA3829655F50C99472E") {
     const PartPropertyData = reactive<PartProperty[]>([]);
     const GetPartPropertyList= async() =>{
         await axios.post(`/ExportPartBom/GetPartProperty?userId=${userId}`).then(({data}) => {

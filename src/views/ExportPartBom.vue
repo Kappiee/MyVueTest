@@ -8,11 +8,11 @@ import { reactive,onMounted,ref,watchEffect } from "vue";
 import { useRoute } from 'vue-router';
 
 
-import {getPartPropertyList,getTableHeight,ExportPartBom} from "@/hooks/ExportPartBomHooks";
+import {useGetPartPropertyColumns,useGetTableHeight,useExportPartBom} from "@/composables/exportPartBom";
 // 获取表格数据
-const {PartPropertyData} = getPartPropertyList();
+const {PartPropertyData} = useGetPartPropertyColumns();
 // 计算表格高度
-const {tableHeight} = getTableHeight();
+const {tableHeight} = useGetTableHeight();
 
 // 下载事件
 let partId : string;
@@ -20,11 +20,12 @@ const buttonLoading = ref(false);
 const ExportPartBomClickEvent = async() =>{
     if (options.data) {
         buttonLoading.value = true;
-        await ExportPartBom(options.data,partId);
+        await useExportPartBom(options.data,partId);
         buttonLoading.value = false;
     }
 }
 
+//表格配置
 const options = reactive({
     height:0,
     border: true,

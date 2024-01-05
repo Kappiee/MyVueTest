@@ -1,7 +1,7 @@
-import axios from '@/common/ArasHttp';
+import axios from '@/common/arasHttp';
 import { VXETable,VxeTableDataRow } from 'vxe-table';
-import { PartProperty } from '@/types/ExportPartBomTypes';
-export async function ExportPartBom(data:VxeTableDataRow[], partId : string,userId = "30B991F927274FA3829655F50C99472E") {
+import { PartProperty } from '@/types/exportPartBom';
+export async function useExportPartBom(data:VxeTableDataRow[], partId : string,userId = "30B991F927274FA3829655F50C99472E") {
     if (!data) {
         return;
     }

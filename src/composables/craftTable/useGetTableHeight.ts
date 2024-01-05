@@ -1,10 +1,9 @@
-import {onMounted, ref } from "vue";
+import {ref, watchEffect } from "vue";
 
-export default function()  {
+export const useGetTableHeight = (h = 0) =>  {
     const height = ref(0)
-    function calHeight(h = 0) {
-            const clientHeight = document.body.clientHeight
-            debugger
+    function calHeight(h: number) {
+            const windowViewHeight = document.documentElement.clientHeight
             let formHeight = 0
             const formFilter = document.querySelector('.form-filter')
             if (formFilter !== null) {
@@ -15,16 +14,15 @@ export default function()  {
             if (vxeToolbar !== null) {
                 toolbarHeight = vxeToolbar.clientHeight + 15
             }
-            height.value = clientHeight - (formHeight + toolbarHeight + 45)
-            if (clientHeight > 0) {
+            height.value = windowViewHeight - (formHeight + toolbarHeight)
+            if (windowViewHeight > 0) {
                 height.value -=h
             }
     }
-    onMounted(() => {
-        calHeight()
+    watchEffect(() => {
+        calHeight(h)
     })
     return {
-        height,
-        calHeight
+        height
     }
 }
